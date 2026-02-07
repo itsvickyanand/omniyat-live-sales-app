@@ -4,6 +4,8 @@ const {
   getAllOrders,
   cancelOrder,
   markOrderPaid,
+  getOrderDetail,
+  deleteOrder,
 } = require("../controllers/order.controller");
 
 const router = express.Router();
@@ -19,5 +21,9 @@ router.put("/cancel/:id", cancelOrder);
 
 // ✅ Mark Offline Order Paid
 router.put("/mark-paid/:id", markOrderPaid);
+
+router.get("/detail/:id", getOrderDetail);
+
+router.delete("/delete/:id", deleteOrder);
 
 module.exports = router;

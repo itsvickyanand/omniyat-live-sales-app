@@ -148,20 +148,17 @@ const Order = sequelize.define(
     },
 
     paymentStatus: {
-      paymentStatus: {
-        type: DataTypes.ENUM(
-          "CREATED", // order created
-          "PENDING", // payment started
-          "AUTHORIZED", // authorized but not captured
-          "PAID", // success
-          "FAILED", // failed
-          "CANCELLED", // user cancelled
-          "REFUNDED" // refunded
-        ),
-        defaultValue: "CREATED",
-      },
+      type: DataTypes.ENUM(
+        "CREATED",
+        "PENDING",
+        "AUTHORIZED",
+        "PAID",
+        "FAILED",
+        "CANCELLED",
+        "REFUNDED"
+      ),
       allowNull: false,
-      defaultValue: "PENDING",
+      defaultValue: "CREATED",
     },
 
     status: {

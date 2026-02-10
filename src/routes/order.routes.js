@@ -7,6 +7,7 @@ const {
   getOrderDetail,
   deleteOrder,
 } = require("../controllers/order.controller");
+const protectAdmin = require("../middlewares/protectAdmin");
 
 const router = express.Router();
 
@@ -17,13 +18,13 @@ router.post("/create", createOrder);
 router.get("/all", getAllOrders);
 
 // ✅ Cancel Order (restore stock)
-router.put("/cancel/:id", cancelOrder);
+router.put("/cancel/:id", protectAdmin, cancelOrder);
 
 // ✅ Mark Offline Order Paid
-router.put("/mark-paid/:id", markOrderPaid);
+router.put("/mark-paid/:id", protectAdmin, markOrderPaid);
 
 router.get("/detail/:id", getOrderDetail);
 
-router.delete("/delete/:id", deleteOrder);
+router.delete("/delete/:id", protectAdmin, deleteOrder);
 
 module.exports = router;

@@ -3,6 +3,7 @@ const sequelize = require("../config/db");
 const Category = require("./Category.model");
 const Product = require("./Product.model");
 const Order = require("./Order.model");
+const AdminSession = require("./AdminSession");
 
 // ✅ Relations
 Category.hasMany(Product, {
@@ -29,6 +30,7 @@ const db = {
   Category,
   Product,
   Order,
+  AdminSession,
 };
 
 module.exports = db;

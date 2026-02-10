@@ -1,6 +1,7 @@
 require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
+const cookieParser = require("cookie-parser");
 
 const db = require("./models");
 
@@ -10,8 +11,10 @@ const uploadRoutes = require("./routes/upload.routes");
 const orderRoutes = require("./routes/order.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const mockPaymentRoutes = require("./routes/mockPayment.routes");
+const adminAuthRoutes = require("./routes/adminAuth.routes");
 
 const app = express();
+app.use(cookieParser());
 
 /*
 IMPORTANT: CCAvenue sends RAW body.
@@ -53,6 +56,7 @@ app.use(
 /*
 Routes
 */
+app.use("/admin", adminAuthRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/product", productRoutes);
 app.use("/api/upload", uploadRoutes);

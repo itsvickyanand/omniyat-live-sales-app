@@ -6,12 +6,13 @@ const {
   getAllProducts,
   getProductDetail,
 } = require("../controllers/product.controller");
+const protectAdmin = require("../middlewares/protectAdmin");
 
 const router = express.Router();
 
-router.post("/create", createProduct);
-router.put("/update/:id", updateProduct);
-router.delete("/delete/:id", deleteProduct);
+router.post("/create", protectAdmin, createProduct);
+router.put("/update/:id", protectAdmin, updateProduct);
+router.delete("/delete/:id", protectAdmin, deleteProduct);
 router.get("/all", getAllProducts);
 router.get("/:id", getProductDetail);
 

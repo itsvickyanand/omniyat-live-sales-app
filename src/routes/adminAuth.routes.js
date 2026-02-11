@@ -31,10 +31,16 @@ router.post("/login", async (req, res) => {
     });
 
     // 5. Send cookie to browser
+    // res.cookie("superadmin_session", sessionToken, {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === "production",
+    //   sameSite: "strict",
+    //   maxAge: 24 * 60 * 60 * 1000,
+    // });
     res.cookie("superadmin_session", sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: true, // REQUIRED for SameSite=None
+      sameSite: "none", // REQUIRED for cross-domain
       maxAge: 24 * 60 * 60 * 1000,
     });
 

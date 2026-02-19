@@ -1,13 +1,455 @@
-const { Product, Category } = require("../models");
+// const { Product, Category, Artist, sequelize } = require("../models");
+// const slugify = require("../utils/slugify");
 
-// ✅ Create Product Service
+// /*
+// ========================================
+// UTILITY: GENERATE UNIQUE SLUG
+// ========================================
+// */
+// const generateUniqueSlug = async (name, transaction = null) => {
+//   const baseSlug = slugify(name);
+
+//   let slug = baseSlug;
+//   let counter = 1;
+
+//   while (true) {
+//     const exists = await Product.findOne({
+//       where: { slug },
+//       transaction,
+//     });
+
+//     if (!exists) break;
+
+//     slug = `${baseSlug}-${counter}`;
+//     counter++;
+//   }
+
+//   return slug;
+// };
+
+// /*
+// ========================================
+// CREATE PRODUCT SERVICE
+// ========================================
+// */
+// const createProductService = async (payload) => {
+//   const transaction = await sequelize.transaction();
+
+//   try {
+//     const {
+//       categoryId,
+//       artistId,
+//       name,
+
+//       price,
+//       stock = 0,
+
+//       description = null,
+//       size = null,
+//       weight = null,
+//       donationPercentage = null,
+//       deliveryInfo = null,
+//       address = null,
+//       installationInstructions = null,
+
+//       images = [],
+//       thumbnail = null,
+
+//       isActive = true,
+//     } = payload;
+
+//     /*
+//     VALIDATE CATEGORY
+//     */
+//     const category = await Category.findByPk(categoryId, { transaction });
+
+//     if (!category) {
+//       await transaction.rollback();
+
+//       return {
+//         ok: false,
+//         statusCode: 404,
+//         message: "Category not found",
+//         error: "CATEGORY_NOT_FOUND",
+//       };
+//     }
+
+//     /*
+//     VALIDATE ARTIST
+//     */
+//     const artist = await Artist.findByPk(artistId, { transaction });
+
+//     if (!artist) {
+//       await transaction.rollback();
+
+//       return {
+//         ok: false,
+//         statusCode: 404,
+//         message: "Artist not found",
+//         error: "ARTIST_NOT_FOUND",
+//       };
+//     }
+
+//     /*
+//     GENERATE UNIQUE SLUG
+//     */
+//     const slug = await generateUniqueSlug(name, transaction);
+
+//     /*
+//     CREATE PRODUCT
+//     */
+//     const product = await Product.create(
+//       {
+//         categoryId,
+//         artistId,
+//         name,
+//         slug,
+
+//         price: Number(price),
+//         stock: Number(stock),
+
+//         description,
+//         size,
+//         weight,
+//         donationPercentage,
+//         deliveryInfo,
+//         address,
+//         installationInstructions,
+
+//         images,
+//         thumbnail: thumbnail || images?.[0] || null,
+
+//         isActive,
+//       },
+//       { transaction }
+//     );
+
+//     await transaction.commit();
+
+//     return {
+//       ok: true,
+//       statusCode: 201,
+//       message: "Product created successfully",
+//       data: product,
+//     };
+//   } catch (error) {
+//     await transaction.rollback();
+
+//     return {
+//       ok: false,
+//       statusCode: 500,
+//       message: "Failed to create product",
+//       error: error.message,
+//     };
+//   }
+// };
+
+// /*
+// ========================================
+// UPDATE PRODUCT SERVICE
+// ========================================
+// */
+// const updateProductService = async ({ id, ...payload }) => {
+//   const transaction = await sequelize.transaction();
+
+//   try {
+//     const product = await Product.findByPk(id, { transaction });
+
+//     if (!product) {
+//       await transaction.rollback();
+
+//       return {
+//         ok: false,
+//         statusCode: 404,
+//         message: "Product not found",
+//         error: "NOT_FOUND",
+//       };
+//     }
+
+//     /*
+//     VALIDATE CATEGORY IF CHANGED
+//     */
+//     if (payload.categoryId && payload.categoryId !== product.categoryId) {
+//       const category = await Category.findByPk(payload.categoryId, {
+//         transaction,
+//       });
+
+//       if (!category) {
+//         await transaction.rollback();
+
+//         return {
+//           ok: false,
+//           statusCode: 404,
+//           message: "Category not found",
+//           error: "CATEGORY_NOT_FOUND",
+//         };
+//       }
+//     }
+
+//     /*
+//     VALIDATE ARTIST IF CHANGED
+//     */
+//     if (payload.artistId && payload.artistId !== product.artistId) {
+//       const artist = await Artist.findByPk(payload.artistId, {
+//         transaction,
+//       });
+
+//       if (!artist) {
+//         await transaction.rollback();
+
+//         return {
+//           ok: false,
+//           statusCode: 404,
+//           message: "Artist not found",
+//           error: "ARTIST_NOT_FOUND",
+//         };
+//       }
+//     }
+
+//     /*
+//     AUTO UPDATE SLUG IF NAME CHANGED
+//     */
+//     let slug = product.slug;
+
+//     if (payload.name && payload.name !== product.name) {
+//       slug = await generateUniqueSlug(payload.name, transaction);
+//     }
+
+//     /*
+//     UPDATE PRODUCT
+//     */
+//     await product.update(
+//       {
+//         categoryId: payload.categoryId ?? product.categoryId,
+//         artistId: payload.artistId ?? product.artistId,
+
+//         name: payload.name ?? product.name,
+//         slug,
+
+//         price:
+//           payload.price !== undefined ? Number(payload.price) : product.price,
+
+//         stock:
+//           payload.stock !== undefined ? Number(payload.stock) : product.stock,
+
+//         description: payload.description ?? product.description,
+//         size: payload.size ?? product.size,
+//         weight: payload.weight ?? product.weight,
+//         donationPercentage:
+//           payload.donationPercentage ?? product.donationPercentage,
+//         deliveryInfo: payload.deliveryInfo ?? product.deliveryInfo,
+//         address: payload.address ?? product.address,
+//         installationInstructions:
+//           payload.installationInstructions ?? product.installationInstructions,
+
+//         images: payload.images ?? product.images,
+//         thumbnail: payload.thumbnail ?? product.thumbnail,
+
+//         isActive: payload.isActive ?? product.isActive,
+//       },
+//       { transaction }
+//     );
+
+//     await transaction.commit();
+
+//     return {
+//       ok: true,
+//       statusCode: 200,
+//       message: "Product updated successfully",
+//       data: product,
+//     };
+//   } catch (error) {
+//     await transaction.rollback();
+
+//     return {
+//       ok: false,
+//       statusCode: 500,
+//       message: "Failed to update product",
+//       error: error.message,
+//     };
+//   }
+// };
+
+// /*
+// ========================================
+// DELETE PRODUCT SERVICE
+// ========================================
+// */
+// const deleteProductService = async ({ id }) => {
+//   const transaction = await sequelize.transaction();
+
+//   try {
+//     const product = await Product.findByPk(id, { transaction });
+
+//     if (!product) {
+//       await transaction.rollback();
+
+//       return {
+//         ok: false,
+//         statusCode: 404,
+//         message: "Product not found",
+//         error: "NOT_FOUND",
+//       };
+//     }
+
+//     await product.destroy({ transaction });
+
+//     await transaction.commit();
+
+//     return {
+//       ok: true,
+//       statusCode: 200,
+//       message: "Product deleted successfully",
+//     };
+//   } catch (error) {
+//     await transaction.rollback();
+
+//     return {
+//       ok: false,
+//       statusCode: 500,
+//       message: "Failed to delete product",
+//       error: error.message,
+//     };
+//   }
+// };
+
+// /*
+// ========================================
+// GET ALL PRODUCTS SERVICE
+// ========================================
+// */
+// const getAllProductsService = async () => {
+//   try {
+//     const products = await Product.findAll({
+//       include: [
+//         {
+//           model: Category,
+//           as: "category",
+//           attributes: ["id", "name", "slug"],
+//         },
+//         {
+//           model: Artist,
+//           as: "artist",
+//           attributes: ["id", "name", "imageUrl"],
+//         },
+//       ],
+
+//       order: [["createdAt", "DESC"]],
+//     });
+
+//     return {
+//       ok: true,
+//       statusCode: 200,
+//       message: "Products fetched successfully",
+//       data: products,
+//     };
+//   } catch (error) {
+//     return {
+//       ok: false,
+//       statusCode: 500,
+//       message: "Failed to fetch products",
+//       error: error.message,
+//     };
+//   }
+// };
+
+// /*
+// ========================================
+// GET PRODUCT DETAIL SERVICE
+// ========================================
+// */
+// const getProductDetailService = async ({ id }) => {
+//   try {
+//     const product = await Product.findByPk(id, {
+//       include: [
+//         {
+//           model: Category,
+//           as: "category",
+//           attributes: ["id", "name", "slug"],
+//         },
+//         {
+//           model: Artist,
+//           as: "artist",
+//           attributes: ["id", "name", "imageUrl"],
+//         },
+//       ],
+//     });
+
+//     if (!product) {
+//       return {
+//         ok: false,
+//         statusCode: 404,
+//         message: "Product not found",
+//         error: "NOT_FOUND",
+//       };
+//     }
+
+//     return {
+//       ok: true,
+//       statusCode: 200,
+//       message: "Product fetched successfully",
+//       data: product,
+//     };
+//   } catch (error) {
+//     return {
+//       ok: false,
+//       statusCode: 500,
+//       message: "Failed to fetch product",
+//       error: error.message,
+//     };
+//   }
+// };
+
+// module.exports = {
+//   createProductService,
+//   updateProductService,
+//   deleteProductService,
+//   getAllProductsService,
+//   getProductDetailService,
+// };
+
+const { Product, Category, Artist, sequelize } = require("../models");
+const slugify = require("../utils/slugify");
+
+/*
+========================================
+UTILITY: GENERATE UNIQUE SLUG
+========================================
+*/
+const generateUniqueSlug = async (name, transaction = null) => {
+  const baseSlug = slugify(name);
+
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (true) {
+    const exists = await Product.findOne({
+      where: { slug },
+      transaction,
+    });
+
+    if (!exists) break;
+
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return slug;
+};
+
+/*
+========================================
+CREATE PRODUCT SERVICE
+========================================
+*/
 const createProductService = async (payload) => {
+  const transaction = await sequelize.transaction();
+
   try {
     const {
       categoryId,
-      artistName,
+      artistId,
       name,
-      slug,
       price,
       stock = 0,
 
@@ -25,284 +467,330 @@ const createProductService = async (payload) => {
       isActive = true,
     } = payload;
 
-    // ✅ REQUIRED VALIDATIONS
-
-    if (!categoryId) {
-      return {
-        ok: false,
-        statusCode: 400,
-        message: "categoryId is required",
-        data: null,
-        error: "VALIDATION_ERROR",
-      };
-    }
-
-    if (!artistName || artistName.trim() === "") {
-      return {
-        ok: false,
-        statusCode: 400,
-        message: "artistName is required",
-        data: null,
-        error: "VALIDATION_ERROR",
-      };
-    }
-
-    if (!name || name.trim() === "") {
-      return {
-        ok: false,
-        statusCode: 400,
-        message: "Product name is required",
-        data: null,
-        error: "VALIDATION_ERROR",
-      };
-    }
-
-    if (!slug || slug.trim() === "") {
-      return {
-        ok: false,
-        statusCode: 400,
-        message: "Product slug is required",
-        data: null,
-        error: "VALIDATION_ERROR",
-      };
-    }
-
-    if (price === undefined || price === null || isNaN(price)) {
-      return {
-        ok: false,
-        statusCode: 400,
-        message: "Valid price is required",
-        data: null,
-        error: "VALIDATION_ERROR",
-      };
-    }
-
-    // ✅ Validate category exists
-
-    const category = await Category.findByPk(categoryId);
+    /*
+    VALIDATE CATEGORY
+    */
+    const category = await Category.findByPk(categoryId, {
+      transaction,
+    });
 
     if (!category) {
+      await transaction.rollback();
+
       return {
         ok: false,
         statusCode: 404,
         message: "Category not found",
-        data: null,
         error: "CATEGORY_NOT_FOUND",
       };
     }
 
-    // ✅ Check slug uniqueness
-
-    const existingSlug = await Product.findOne({
-      where: { slug },
+    /*
+    VALIDATE ARTIST
+    */
+    const artist = await Artist.findByPk(artistId, {
+      transaction,
     });
 
-    if (existingSlug) {
+    if (!artist) {
+      await transaction.rollback();
+
       return {
         ok: false,
-        statusCode: 409,
-        message: "Product with this slug already exists",
-        data: null,
-        error: "DUPLICATE_SLUG",
+        statusCode: 404,
+        message: "Artist not found",
+        error: "ARTIST_NOT_FOUND",
       };
     }
 
-    // ✅ Create product safely
+    /*
+    GENERATE UNIQUE SLUG
+    */
+    const slug = await generateUniqueSlug(name, transaction);
 
-    const product = await Product.create({
-      categoryId,
-      artistName,
-      name,
-      slug,
+    /*
+    CREATE PRODUCT
+    */
+    const product = await Product.create(
+      {
+        categoryId,
+        artistId,
+        name,
+        slug,
 
-      price: Number(price),
-      stock: Number(stock),
+        price: Number(price),
+        stock: Number(stock),
 
-      description,
-      size,
-      weight,
-      donationPercentage,
-      deliveryInfo,
-      address,
-      installationInstructions,
+        description,
+        size,
+        weight,
+        donationPercentage,
+        deliveryInfo,
+        address,
+        installationInstructions,
 
-      images,
-      thumbnail,
+        images,
+        thumbnail: thumbnail || images?.[0] || null,
 
-      isActive,
+        isActive,
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
+
+    /*
+    RETURN WITH ASSOCIATIONS
+    */
+    const createdProduct = await Product.findByPk(product.id, {
+      include: [
+        {
+          model: Category,
+          as: "category",
+          attributes: ["id", "name", "slug"],
+        },
+        {
+          model: Artist,
+          as: "artist",
+          attributes: ["id", "name", "imageUrl"],
+        },
+      ],
     });
 
     return {
       ok: true,
       statusCode: 201,
-      message: "Product created successfully ✅",
-      data: product,
-      error: null,
+      message: "Product created successfully",
+      data: createdProduct,
     };
-  } catch (err) {
+  } catch (error) {
+    await transaction.rollback();
+
     return {
       ok: false,
       statusCode: 500,
       message: "Failed to create product",
-      data: null,
-      error: err.message,
+      error: error.message,
     };
   }
 };
 
-// ✅ Update Product Service
-
+/*
+========================================
+UPDATE PRODUCT SERVICE
+========================================
+*/
 const updateProductService = async ({ id, ...payload }) => {
+  const transaction = await sequelize.transaction();
+
   try {
-    const product = await Product.findByPk(id);
+    const product = await Product.findByPk(id, {
+      transaction,
+    });
 
     if (!product) {
+      await transaction.rollback();
+
       return {
         ok: false,
         statusCode: 404,
         message: "Product not found",
-        data: null,
         error: "NOT_FOUND",
       };
     }
 
-    // ✅ Category validation
-
+    /*
+    VALIDATE CATEGORY IF CHANGED
+    */
     if (payload.categoryId && payload.categoryId !== product.categoryId) {
-      const category = await Category.findByPk(payload.categoryId);
+      const category = await Category.findByPk(payload.categoryId, {
+        transaction,
+      });
 
       if (!category) {
+        await transaction.rollback();
+
         return {
           ok: false,
           statusCode: 404,
           message: "Category not found",
-          data: null,
           error: "CATEGORY_NOT_FOUND",
         };
       }
     }
 
-    // ✅ Slug uniqueness validation
+    /*
+    VALIDATE ARTIST IF CHANGED
+    */
+    if (payload.artistId && payload.artistId !== product.artistId) {
+      const artist = await Artist.findByPk(payload.artistId, { transaction });
 
-    if (payload.slug && payload.slug !== product.slug) {
-      const existingSlug = await Product.findOne({
-        where: { slug: payload.slug },
-      });
+      if (!artist) {
+        await transaction.rollback();
 
-      if (existingSlug) {
         return {
           ok: false,
-          statusCode: 409,
-          message: "Product with this slug already exists",
-          data: null,
-          error: "DUPLICATE_SLUG",
+          statusCode: 404,
+          message: "Artist not found",
+          error: "ARTIST_NOT_FOUND",
         };
       }
     }
 
-    // ✅ Safely update fields
+    /*
+    AUTO UPDATE SLUG IF NAME CHANGED
+    */
+    let slug = product.slug;
 
-    await product.update({
-      categoryId: payload.categoryId ?? product.categoryId,
+    if (payload.name && payload.name !== product.name) {
+      slug = await generateUniqueSlug(payload.name, transaction);
+    }
 
-      artistName: payload.artistName ?? product.artistName,
+    /*
+    UPDATE PRODUCT
+    */
+    await product.update(
+      {
+        categoryId: payload.categoryId ?? product.categoryId,
 
-      name: payload.name ?? product.name,
+        artistId: payload.artistId ?? product.artistId,
 
-      slug: payload.slug ?? product.slug,
+        name: payload.name ?? product.name,
 
-      price:
-        payload.price !== undefined ? Number(payload.price) : product.price,
+        slug,
 
-      stock:
-        payload.stock !== undefined ? Number(payload.stock) : product.stock,
+        price:
+          payload.price !== undefined ? Number(payload.price) : product.price,
 
-      description: payload.description ?? product.description,
+        stock:
+          payload.stock !== undefined ? Number(payload.stock) : product.stock,
 
-      size: payload.size ?? product.size,
+        description: payload.description ?? product.description,
 
-      weight: payload.weight ?? product.weight,
+        size: payload.size ?? product.size,
 
-      donationPercentage:
-        payload.donationPercentage ?? product.donationPercentage,
+        weight: payload.weight ?? product.weight,
 
-      deliveryInfo: payload.deliveryInfo ?? product.deliveryInfo,
+        donationPercentage:
+          payload.donationPercentage ?? product.donationPercentage,
 
-      address: payload.address ?? product.address,
+        deliveryInfo: payload.deliveryInfo ?? product.deliveryInfo,
 
-      installationInstructions:
-        payload.installationInstructions ?? product.installationInstructions,
+        address: payload.address ?? product.address,
 
-      images: payload.images ?? product.images,
+        installationInstructions:
+          payload.installationInstructions ?? product.installationInstructions,
 
-      thumbnail: payload.thumbnail ?? product.thumbnail,
+        images: payload.images ?? product.images,
 
-      isActive: payload.isActive ?? product.isActive,
+        thumbnail: payload.thumbnail ?? product.thumbnail,
+
+        isActive: payload.isActive ?? product.isActive,
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
+
+    /*
+    RETURN UPDATED WITH ASSOCIATIONS
+    */
+    const updatedProduct = await Product.findByPk(id, {
+      include: [
+        {
+          model: Category,
+          as: "category",
+          attributes: ["id", "name", "slug"],
+        },
+        {
+          model: Artist,
+          as: "artist",
+          attributes: ["id", "name", "imageUrl"],
+        },
+      ],
     });
 
     return {
       ok: true,
       statusCode: 200,
-      message: "Product updated successfully ✅",
-      data: product,
-      error: null,
+      message: "Product updated successfully",
+      data: updatedProduct,
     };
-  } catch (err) {
+  } catch (error) {
+    await transaction.rollback();
+
     return {
       ok: false,
       statusCode: 500,
       message: "Failed to update product",
-      data: null,
-      error: err.message,
+      error: error.message,
     };
   }
 };
 
-// ✅ Delete Product Service (unchanged)
-
+/*
+========================================
+DELETE PRODUCT SERVICE
+========================================
+*/
 const deleteProductService = async ({ id }) => {
+  const transaction = await sequelize.transaction();
+
   try {
-    const product = await Product.findByPk(id);
+    const product = await Product.findByPk(id, {
+      transaction,
+    });
 
     if (!product) {
+      await transaction.rollback();
+
       return {
         ok: false,
         statusCode: 404,
         message: "Product not found",
-        data: null,
         error: "NOT_FOUND",
       };
     }
 
-    await product.destroy();
+    await product.destroy({ transaction });
+
+    await transaction.commit();
 
     return {
       ok: true,
       statusCode: 200,
-      message: "Product deleted successfully ✅",
-      data: null,
-      error: null,
+      message: "Product deleted successfully",
     };
-  } catch (err) {
+  } catch (error) {
+    await transaction.rollback();
+
     return {
       ok: false,
       statusCode: 500,
       message: "Failed to delete product",
-      data: null,
-      error: err.message,
+      error: error.message,
     };
   }
 };
 
-// ✅ Get All Products
-
+/*
+========================================
+GET ALL PRODUCTS SERVICE
+========================================
+*/
 const getAllProductsService = async () => {
   try {
     const products = await Product.findAll({
       include: [
         {
           model: Category,
-          attributes: ["id", "name"],
+          as: "category", // ✅ REQUIRED
+          attributes: ["id", "name", "slug"],
+        },
+        {
+          model: Artist,
+          as: "artist", // ✅ REQUIRED
+          attributes: ["id", "name", "imageUrl"],
         },
       ],
 
@@ -311,28 +799,38 @@ const getAllProductsService = async () => {
 
     return {
       ok: true,
-      message: "Products fetched successfully ✅",
+      statusCode: 200,
+      message: "Products fetched successfully",
       data: products,
     };
-  } catch (err) {
+  } catch (error) {
     return {
       ok: false,
+      statusCode: 500,
       message: "Failed to fetch products",
-      data: null,
-      error: err.message,
+      error: error.message,
     };
   }
 };
 
-// ✅ Get Product Detail
-
+/*
+========================================
+GET PRODUCT DETAIL SERVICE
+========================================
+*/
 const getProductDetailService = async ({ id }) => {
   try {
     const product = await Product.findByPk(id, {
       include: [
         {
           model: Category,
-          attributes: ["id", "name"],
+          as: "category",
+          attributes: ["id", "name", "slug"],
+        },
+        {
+          model: Artist,
+          as: "artist",
+          // attributes: ["id", "name", "imageUrl"],
         },
       ],
     });
@@ -342,7 +840,6 @@ const getProductDetailService = async ({ id }) => {
         ok: false,
         statusCode: 404,
         message: "Product not found",
-        data: null,
         error: "NOT_FOUND",
       };
     }
@@ -350,17 +847,15 @@ const getProductDetailService = async ({ id }) => {
     return {
       ok: true,
       statusCode: 200,
-      message: "Product fetched successfully ✅",
+      message: "Product fetched successfully",
       data: product,
-      error: null,
     };
-  } catch (err) {
+  } catch (error) {
     return {
       ok: false,
       statusCode: 500,
       message: "Failed to fetch product",
-      data: null,
-      error: err.message,
+      error: error.message,
     };
   }
 };

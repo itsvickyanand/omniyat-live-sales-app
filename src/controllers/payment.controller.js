@@ -13,8 +13,7 @@ INITIATE PAYMENT
 */
 const initiateCcavenuePayment = async (req, res) => {
   const reqId = uuidv4().slice(0, 8);
-
-  console.log(`\n🟢 [${reqId}] INITIATE PAYMENT START`);
+  let transaction;
 
   try {
     const { orderId } = req.body;
@@ -26,28 +25,48 @@ const initiateCcavenuePayment = async (req, res) => {
       });
     }
 
-    const order = await Order.findByPk(orderId);
+    transaction = await sequelize.transaction();
+
+    const order = await Order.findByPk(orderId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
 
     if (!order) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         message: "Order not found",
       });
     }
 
-    /*
-    Prevent duplicate payment attempts
-    */
-    if (order.paymentStatus === "PAID") {
+    // Prevent POS paid orders going online
+    if (order.paymentMode === "OFFLINE" && order.paymentStatus === "PAID") {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: "Order already paid",
+        message: "Offline paid orders cannot be paid online",
       });
     }
 
-    /*
-    Validate environment
-    */
+    // Prevent duplicate initiation
+    if (order.paymentMode === "ONLINE" && order.gatewayOrderId) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Payment already initiated",
+      });
+    }
+
+    // Allow only PENDING
+    if (order.paymentStatus !== "PENDING") {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Only pending orders can be paid",
+      });
+    }
+
     const {
       CCAV_MERCHANT_ID,
       CCAV_ACCESS_CODE,
@@ -56,73 +75,42 @@ const initiateCcavenuePayment = async (req, res) => {
       CCAV_CANCEL_URL,
     } = process.env;
 
-    if (
-      !CCAV_MERCHANT_ID ||
-      !CCAV_ACCESS_CODE ||
-      !CCAV_WORKING_KEY ||
-      !CCAV_REDIRECT_URL ||
-      !CCAV_CANCEL_URL
-    ) {
-      console.error(`[${reqId}] Missing gateway env config`);
-
+    if (!CCAV_MERCHANT_ID || !CCAV_ACCESS_CODE || !CCAV_WORKING_KEY) {
+      await transaction.rollback();
       return res.status(500).json({
         success: false,
-        message: "Payment gateway not configured",
+        message: "Gateway not configured",
       });
     }
 
-    /*
-    Generate short ID (CCAvenue limit)
-    */
     const shortOrderId = order.id.replace(/-/g, "").substring(0, 20);
 
-    /*
-    Prepare gateway payload
-    */
     const rawData = {
       merchant_id: CCAV_MERCHANT_ID,
       order_id: shortOrderId,
-
       currency: "AED",
       amount: Number(order.amount).toFixed(2),
-
       redirect_url: CCAV_REDIRECT_URL,
       cancel_url: CCAV_CANCEL_URL,
-
-      billing_name: order.customerName,
+      billing_name: order.customerFirstName + " " + order.customerLastName,
       billing_email: order.customerEmail,
-      billing_tel: order.customerPhone,
-
-      billing_address: "NA",
-      billing_city: "NA",
-      billing_state: "NA",
-      billing_zip: "00000",
-      billing_country: "AE",
-
-      /*
-      Critical mapping fields
-      */
+      billing_tel: order.customerPhoneNumber,
       merchant_param1: order.id,
-      merchant_param2: order.customerEmail || "",
-      merchant_param3: order.customerPhone || "",
-
       language: "EN",
     };
 
-    const rawString = qs.stringify(rawData);
+    const encRequest = encrypt(qs.stringify(rawData), CCAV_WORKING_KEY);
 
-    const encRequest = encrypt(rawString, CCAV_WORKING_KEY);
+    await order.update(
+      {
+        paymentMode: "ONLINE",
+        paymentStatus: "PENDING",
+        gatewayOrderId: shortOrderId,
+      },
+      { transaction }
+    );
 
-    /*
-    Update order safely
-    */
-    await order.update({
-      paymentMode: "ONLINE",
-      paymentStatus: "PENDING",
-      gatewayOrderId: shortOrderId,
-    });
-
-    console.log(`🟢 [${reqId}] INITIATE SUCCESS`);
+    await transaction.commit();
 
     return res.json({
       success: true,
@@ -131,7 +119,7 @@ const initiateCcavenuePayment = async (req, res) => {
       orderId: order.id,
     });
   } catch (err) {
-    console.error(`🔴 [${reqId}] INITIATE ERROR`, err);
+    if (transaction) await transaction.rollback();
 
     return res.status(500).json({
       success: false,
@@ -139,6 +127,147 @@ const initiateCcavenuePayment = async (req, res) => {
     });
   }
 };
+
+// const initiateCcavenuePayment = async (req, res) => {
+//   const reqId = uuidv4().slice(0, 8);
+
+//   console.log(`\n🟢 [${reqId}] INITIATE PAYMENT START`);
+
+//   try {
+//     const { orderId } = req.body;
+
+//     if (!orderId) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "orderId is required",
+//       });
+//     }
+
+//     const order = await Order.findByPk(orderId);
+
+//     if (!order) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Order not found",
+//       });
+//     }
+//     if (order.paymentMode === "OFFLINE" && order.paymentStatus === "PAID") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Offline paid orders cannot be paid online",
+//       });
+//     }
+//     if (order.paymentStatus !== "PENDING") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Only pending orders can be paid",
+//       });
+//     }
+
+//     /*
+//     Prevent duplicate payment attempts
+//     */
+//     if (order.paymentStatus === "PAID") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Order already paid",
+//       });
+//     }
+
+//     /*
+//     Validate environment
+//     */
+//     const {
+//       CCAV_MERCHANT_ID,
+//       CCAV_ACCESS_CODE,
+//       CCAV_WORKING_KEY,
+//       CCAV_REDIRECT_URL,
+//       CCAV_CANCEL_URL,
+//     } = process.env;
+
+//     if (
+//       !CCAV_MERCHANT_ID ||
+//       !CCAV_ACCESS_CODE ||
+//       !CCAV_WORKING_KEY ||
+//       !CCAV_REDIRECT_URL ||
+//       !CCAV_CANCEL_URL
+//     ) {
+//       console.error(`[${reqId}] Missing gateway env config`);
+
+//       return res.status(500).json({
+//         success: false,
+//         message: "Payment gateway not configured",
+//       });
+//     }
+
+//     /*
+//     Generate short ID (CCAvenue limit)
+//     */
+//     const shortOrderId = order.id.replace(/-/g, "").substring(0, 20);
+
+//     /*
+//     Prepare gateway payload
+//     */
+//     const rawData = {
+//       merchant_id: CCAV_MERCHANT_ID,
+//       order_id: shortOrderId,
+
+//       currency: "AED",
+//       amount: Number(order.amount).toFixed(2),
+
+//       redirect_url: CCAV_REDIRECT_URL,
+//       cancel_url: CCAV_CANCEL_URL,
+
+//       billing_name: order.customerName,
+//       billing_email: order.customerEmail,
+//       billing_tel: order.customerPhone,
+
+//       billing_address: "NA",
+//       billing_city: "NA",
+//       billing_state: "NA",
+//       billing_zip: "00000",
+//       billing_country: "AE",
+
+//       /*
+//       Critical mapping fields
+//       */
+//       merchant_param1: order.id,
+//       merchant_param2: order.customerEmail || "",
+//       merchant_param3: order.customerPhone || "",
+
+//       language: "EN",
+//     };
+
+//     const rawString = qs.stringify(rawData);
+
+//     const encRequest = encrypt(rawString, CCAV_WORKING_KEY);
+
+//     /*
+//     Update order safely
+//     */
+//     await order.update({
+//       paymentMode: "ONLINE",
+//       paymentStatus: "PENDING",
+//       gatewayOrderId: shortOrderId,
+//     });
+
+//     console.log(`🟢 [${reqId}] INITIATE SUCCESS`);
+
+//     return res.json({
+//       success: true,
+//       accessCode: CCAV_ACCESS_CODE,
+//       encRequest,
+//       orderId: order.id,
+//     });
+//   } catch (err) {
+//     console.error(`🔴 [${reqId}] INITIATE ERROR`, err);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Payment initiation failed",
+//     });
+//   }
+// };
 
 /*
 ===========================================================

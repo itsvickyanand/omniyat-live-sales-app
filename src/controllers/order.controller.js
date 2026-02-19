@@ -1,3 +1,289 @@
+// const {
+//   createOrderService,
+//   getAllOrdersService,
+//   cancelOrderService,
+//   markOrderPaidService,
+//   getOrderDetailService,
+//   deleteOrderService,
+// } = require("../services/order.service");
+
+// const { sendResponse } = require("../utils/apiResponse");
+
+// // ✅ Create Order (POS)
+// const createOrder = async (req, res) => {
+//   try {
+//     const { productId, quantity, customerName, customerEmail, customerPhone } =
+//       req.body;
+
+//     console.log(customerEmail, "ashdgjadhaksdhsakjd");
+
+//     // ✅ NEW REQUIRED VALIDATIONS (based on updated schema)
+//     if (!productId) {
+//       return sendResponse(
+//         res,
+//         400,
+//         false,
+//         "Product id is required",
+//         null,
+//         "VALIDATION_ERROR"
+//       );
+//     }
+
+//     if (!customerName || customerName.trim() === "") {
+//       return sendResponse(
+//         res,
+//         400,
+//         false,
+//         "Customer name is required",
+//         null,
+//         "VALIDATION_ERROR"
+//       );
+//     }
+
+//     if (!customerEmail || customerEmail.trim() === "") {
+//       return sendResponse(
+//         res,
+//         400,
+//         false,
+//         "Customer email is required",
+//         null,
+//         "VALIDATION_ERROR"
+//       );
+//     }
+
+//     if (!customerPhone || customerPhone.trim() === "") {
+//       return sendResponse(
+//         res,
+//         400,
+//         false,
+//         "Customer phone is required",
+//         null,
+//         "VALIDATION_ERROR"
+//       );
+//     }
+
+//     if (!quantity || Number(quantity) < 1) {
+//       return sendResponse(
+//         res,
+//         400,
+//         false,
+//         "Quantity must be at least 1",
+//         null,
+//         "VALIDATION_ERROR"
+//       );
+//     }
+
+//     const result = await createOrderService(req.body);
+
+//     return sendResponse(
+//       res,
+//       result.statusCode,
+//       result.ok,
+//       result.message,
+//       result.data || null,
+//       result.error || null
+//     );
+//   } catch (err) {
+//     return sendResponse(
+//       res,
+//       500,
+//       false,
+//       "Internal Server Error",
+//       null,
+//       err.message
+//     );
+//   }
+// };
+
+// // ✅ Get All Orders
+// const getAllOrders = async (req, res) => {
+//   try {
+//     const result = await getAllOrdersService();
+
+//     return sendResponse(
+//       res,
+//       200,
+//       true,
+//       result.message,
+//       result.data || [],
+//       null
+//     );
+//   } catch (err) {
+//     return sendResponse(
+//       res,
+//       500,
+//       false,
+//       "Internal Server Error",
+//       null,
+//       err.message
+//     );
+//   }
+// };
+
+// // ✅ Cancel Order
+// const cancelOrder = async (req, res) => {
+//   try {
+//     const id = req.params.id?.trim();
+
+//     if (!id) {
+//       return sendResponse(
+//         res,
+//         400,
+//         false,
+//         "Order id is required",
+//         null,
+//         "VALIDATION_ERROR"
+//       );
+//     }
+
+//     const result = await cancelOrderService({ id });
+
+//     return sendResponse(
+//       res,
+//       result.statusCode,
+//       result.ok,
+//       result.message,
+//       result.data || null,
+//       result.error || null
+//     );
+//   } catch (err) {
+//     return sendResponse(
+//       res,
+//       500,
+//       false,
+//       "Internal Server Error",
+//       null,
+//       err.message
+//     );
+//   }
+// };
+
+// // ✅ Mark Paid
+// const markOrderPaid = async (req, res) => {
+//   try {
+//     const id = req.params.id?.trim();
+
+//     if (!id) {
+//       return sendResponse(
+//         res,
+//         400,
+//         false,
+//         "Order id is required",
+//         null,
+//         "VALIDATION_ERROR"
+//       );
+//     }
+
+//     const result = await markOrderPaidService({
+//       id,
+//       ...req.body,
+//     });
+
+//     return sendResponse(
+//       res,
+//       result.statusCode,
+//       result.ok,
+//       result.message,
+//       result.data || null,
+//       result.error || null
+//     );
+//   } catch (err) {
+//     return sendResponse(
+//       res,
+//       500,
+//       false,
+//       "Internal Server Error",
+//       null,
+//       err.message
+//     );
+//   }
+// };
+
+// // ✅ Get Order Detail
+// const getOrderDetail = async (req, res) => {
+//   try {
+//     const id = req.params.id?.trim();
+
+//     if (!id) {
+//       return sendResponse(
+//         res,
+//         400,
+//         false,
+//         "Order id is required",
+//         null,
+//         "VALIDATION_ERROR"
+//       );
+//     }
+
+//     const result = await getOrderDetailService({ id });
+
+//     return sendResponse(
+//       res,
+//       result.statusCode,
+//       result.ok,
+//       result.message,
+//       result.data || null,
+//       result.error || null
+//     );
+//   } catch (err) {
+//     return sendResponse(
+//       res,
+//       500,
+//       false,
+//       "Internal Server Error",
+//       null,
+//       err.message
+//     );
+//   }
+// };
+
+// // ✅ Delete Order
+// const deleteOrder = async (req, res) => {
+//   try {
+//     const id = req.params.id?.trim();
+
+//     if (!id) {
+//       return sendResponse(
+//         res,
+//         400,
+//         false,
+//         "Order id is required",
+//         null,
+//         "VALIDATION_ERROR"
+//       );
+//     }
+
+//     const result = await deleteOrderService({ id });
+
+//     return sendResponse(
+//       res,
+//       result.statusCode,
+//       result.ok,
+//       result.message,
+//       result.data || null,
+//       result.error || null
+//     );
+//   } catch (err) {
+//     return sendResponse(
+//       res,
+//       500,
+//       false,
+//       "Internal Server Error",
+//       null,
+//       err.message
+//     );
+//   }
+// };
+
+// module.exports = {
+//   createOrder,
+//   getAllOrders,
+//   cancelOrder,
+//   getOrderDetail,
+//   markOrderPaid,
+//   deleteOrder,
+// };
+
 const {
   createOrderService,
   getAllOrdersService,
@@ -9,38 +295,92 @@ const {
 
 const { sendResponse } = require("../utils/apiResponse");
 
-// ✅ Create Order (POS)
+/*
+========================================
+UTIL VALIDATORS
+========================================
+*/
+
+const isValidUUID = (value) => {
+  if (!value) return false;
+
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  return uuidRegex.test(value);
+};
+
+const isValidString = (value) => {
+  return typeof value === "string" && value.trim() !== "";
+};
+
+const isValidNumber = (value) => {
+  return value !== undefined && value !== null && !isNaN(value);
+};
+
+/*
+========================================
+CREATE ORDER
+========================================
+*/
+
 const createOrder = async (req, res) => {
   try {
-    const { productId, quantity, customerName, customerEmail, customerPhone } =
-      req.body;
+    const {
+      productId,
+      quantity,
 
-    console.log(customerEmail, "ashdgjadhaksdhsakjd");
+      customerFirstName,
+      customerLastName,
+      customerEmail,
 
-    // ✅ NEW REQUIRED VALIDATIONS (based on updated schema)
-    if (!productId) {
+      customerCountryCode,
+      customerPhoneNumber,
+
+      customerCountry,
+      customerState,
+      customerCity,
+      customerAddress,
+    } = req.body;
+
+    /*
+    REQUIRED VALIDATIONS
+    */
+
+    if (!isValidUUID(productId)) {
       return sendResponse(
         res,
         400,
         false,
-        "Product id is required",
+        "Valid productId is required",
         null,
         "VALIDATION_ERROR"
       );
     }
 
-    if (!customerName || customerName.trim() === "") {
+    if (!isValidString(customerFirstName)) {
       return sendResponse(
         res,
         400,
         false,
-        "Customer name is required",
+        "Customer first name is required",
         null,
         "VALIDATION_ERROR"
       );
     }
 
-    if (!customerEmail || customerEmail.trim() === "") {
+    if (!isValidString(customerLastName)) {
+      return sendResponse(
+        res,
+        400,
+        false,
+        "Customer last name is required",
+        null,
+        "VALIDATION_ERROR"
+      );
+    }
+
+    if (!isValidString(customerEmail)) {
       return sendResponse(
         res,
         400,
@@ -51,18 +391,73 @@ const createOrder = async (req, res) => {
       );
     }
 
-    if (!customerPhone || customerPhone.trim() === "") {
+    if (!isValidString(customerCountryCode)) {
       return sendResponse(
         res,
         400,
         false,
-        "Customer phone is required",
+        "Country code is required",
         null,
         "VALIDATION_ERROR"
       );
     }
 
-    if (!quantity || Number(quantity) < 1) {
+    if (!isValidString(customerPhoneNumber)) {
+      return sendResponse(
+        res,
+        400,
+        false,
+        "Phone number is required",
+        null,
+        "VALIDATION_ERROR"
+      );
+    }
+
+    if (!isValidString(customerCountry)) {
+      return sendResponse(
+        res,
+        400,
+        false,
+        "Country is required",
+        null,
+        "VALIDATION_ERROR"
+      );
+    }
+
+    if (!isValidString(customerState)) {
+      return sendResponse(
+        res,
+        400,
+        false,
+        "State is required",
+        null,
+        "VALIDATION_ERROR"
+      );
+    }
+
+    if (!isValidString(customerCity)) {
+      return sendResponse(
+        res,
+        400,
+        false,
+        "City is required",
+        null,
+        "VALIDATION_ERROR"
+      );
+    }
+
+    if (!isValidString(customerAddress)) {
+      return sendResponse(
+        res,
+        400,
+        false,
+        "Address is required",
+        null,
+        "VALIDATION_ERROR"
+      );
+    }
+
+    if (!isValidNumber(quantity) || Number(quantity) < 1) {
       return sendResponse(
         res,
         400,
@@ -72,6 +467,10 @@ const createOrder = async (req, res) => {
         "VALIDATION_ERROR"
       );
     }
+
+    /*
+    CALL SERVICE
+    */
 
     const result = await createOrderService(req.body);
 
@@ -84,53 +483,112 @@ const createOrder = async (req, res) => {
       result.error || null
     );
   } catch (err) {
+    console.error("Create Order Error:", err);
+
     return sendResponse(
       res,
       500,
       false,
-      "Internal Server Error",
+      "Internal server error",
       null,
       err.message
     );
   }
 };
 
-// ✅ Get All Orders
+/*
+========================================
+GET ALL ORDERS
+========================================
+*/
+
 const getAllOrders = async (req, res) => {
   try {
     const result = await getAllOrdersService();
 
     return sendResponse(
       res,
-      200,
-      true,
+      result.statusCode || 200,
+      result.ok,
       result.message,
       result.data || [],
-      null
+      result.error || null
     );
   } catch (err) {
+    console.error("Get Orders Error:", err);
+
     return sendResponse(
       res,
       500,
       false,
-      "Internal Server Error",
+      "Internal server error",
       null,
       err.message
     );
   }
 };
 
-// ✅ Cancel Order
-const cancelOrder = async (req, res) => {
-  try {
-    const id = req.params.id?.trim();
+/*
+========================================
+GET ORDER DETAIL
+========================================
+*/
 
-    if (!id) {
+const getOrderDetail = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!isValidUUID(id)) {
       return sendResponse(
         res,
         400,
         false,
-        "Order id is required",
+        "Valid order id is required",
+        null,
+        "VALIDATION_ERROR"
+      );
+    }
+
+    const result = await getOrderDetailService({ id });
+
+    return sendResponse(
+      res,
+      result.statusCode,
+      result.ok,
+      result.message,
+      result.data || null,
+      result.error || null
+    );
+  } catch (err) {
+    console.error("Get Order Detail Error:", err);
+
+    return sendResponse(
+      res,
+      500,
+      false,
+      "Internal server error",
+      null,
+      err.message
+    );
+  }
+};
+
+/*
+========================================
+CANCEL ORDER
+========================================
+*/
+
+const cancelOrder = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!isValidUUID(id)) {
+      return sendResponse(
+        res,
+        400,
+        false,
+        "Valid order id is required",
         null,
         "VALIDATION_ERROR"
       );
@@ -147,28 +605,35 @@ const cancelOrder = async (req, res) => {
       result.error || null
     );
   } catch (err) {
+    console.error("Cancel Order Error:", err);
+
     return sendResponse(
       res,
       500,
       false,
-      "Internal Server Error",
+      "Internal server error",
       null,
       err.message
     );
   }
 };
 
-// ✅ Mark Paid
+/*
+========================================
+MARK ORDER PAID
+========================================
+*/
+
 const markOrderPaid = async (req, res) => {
   try {
-    const id = req.params.id?.trim();
+    const id = req.params.id;
 
-    if (!id) {
+    if (!isValidUUID(id)) {
       return sendResponse(
         res,
         400,
         false,
-        "Order id is required",
+        "Valid order id is required",
         null,
         "VALIDATION_ERROR"
       );
@@ -188,66 +653,35 @@ const markOrderPaid = async (req, res) => {
       result.error || null
     );
   } catch (err) {
+    console.error("Mark Paid Error:", err);
+
     return sendResponse(
       res,
       500,
       false,
-      "Internal Server Error",
+      "Internal server error",
       null,
       err.message
     );
   }
 };
 
-// ✅ Get Order Detail
-const getOrderDetail = async (req, res) => {
-  try {
-    const id = req.params.id?.trim();
+/*
+========================================
+DELETE ORDER
+========================================
+*/
 
-    if (!id) {
-      return sendResponse(
-        res,
-        400,
-        false,
-        "Order id is required",
-        null,
-        "VALIDATION_ERROR"
-      );
-    }
-
-    const result = await getOrderDetailService({ id });
-
-    return sendResponse(
-      res,
-      result.statusCode,
-      result.ok,
-      result.message,
-      result.data || null,
-      result.error || null
-    );
-  } catch (err) {
-    return sendResponse(
-      res,
-      500,
-      false,
-      "Internal Server Error",
-      null,
-      err.message
-    );
-  }
-};
-
-// ✅ Delete Order
 const deleteOrder = async (req, res) => {
   try {
-    const id = req.params.id?.trim();
+    const id = req.params.id;
 
-    if (!id) {
+    if (!isValidUUID(id)) {
       return sendResponse(
         res,
         400,
         false,
-        "Order id is required",
+        "Valid order id is required",
         null,
         "VALIDATION_ERROR"
       );
@@ -264,11 +698,13 @@ const deleteOrder = async (req, res) => {
       result.error || null
     );
   } catch (err) {
+    console.error("Delete Order Error:", err);
+
     return sendResponse(
       res,
       500,
       false,
-      "Internal Server Error",
+      "Internal server error",
       null,
       err.message
     );

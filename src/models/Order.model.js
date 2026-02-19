@@ -1,9 +1,159 @@
+// const { DataTypes } = require("sequelize");
+// const sequelize = require("../config/db");
+
+// const Order = sequelize.define(
+//   "Order",
+//   {
+//     id: {
+//       type: DataTypes.UUID,
+//       defaultValue: DataTypes.UUIDV4,
+//       primaryKey: true,
+//       allowNull: false,
+//     },
+
+//     productId: {
+//       type: DataTypes.UUID,
+//       allowNull: false,
+//       validate: {
+//         notNull: { msg: "Product ID is required" },
+//         notEmpty: { msg: "Product ID cannot be empty" },
+//       },
+//     },
+
+//     quantity: {
+//       type: DataTypes.INTEGER,
+//       allowNull: false,
+//       defaultValue: 1,
+//       validate: {
+//         isInt: { msg: "Quantity must be an integer" },
+//         min: { args: [1], msg: "Quantity must be at least 1" },
+//       },
+//     },
+
+//     amount: {
+//       type: DataTypes.DECIMAL(10, 2),
+//       allowNull: false,
+//       defaultValue: 0,
+//       validate: {
+//         isDecimal: { msg: "Amount must be a decimal number" },
+//         min: { args: [0], msg: "Amount cannot be negative" },
+//       },
+//     },
+
+//     paymentMode: {
+//       type: DataTypes.ENUM("OFFLINE", "ONLINE"),
+//       allowNull: false,
+//       defaultValue: "OFFLINE",
+//     },
+
+//     paymentStatus: {
+//       type: DataTypes.ENUM(
+//         "CREATED",
+//         "PENDING",
+//         "AUTHORIZED",
+//         "PAID",
+//         "FAILED",
+//         "CANCELLED",
+//         "REFUNDED"
+//       ),
+//       allowNull: false,
+//       defaultValue: "CREATED",
+//     },
+
+//     status: {
+//       type: DataTypes.ENUM("ACTIVE", "CANCELLED"),
+//       allowNull: false,
+//       defaultValue: "ACTIVE",
+//     },
+
+//     paymentMethod: {
+//       type: DataTypes.ENUM("CASH", "UPI", "CARD", "OTHER"),
+//       allowNull: true,
+//     },
+
+//     gatewayOrderId: {
+//       type: DataTypes.STRING,
+//       allowNull: true,
+//     },
+
+//     gatewayTrackingId: {
+//       type: DataTypes.STRING,
+//       allowNull: true,
+//     },
+
+//     paymentRef: {
+//       type: DataTypes.STRING,
+//       allowNull: true,
+//     },
+
+//     // ✅ REQUIRED
+//     customerName: {
+//       type: DataTypes.STRING(120),
+//       allowNull: false,
+//       validate: {
+//         notNull: { msg: "Customer name is required" },
+//         notEmpty: { msg: "Customer name cannot be empty" },
+//         len: {
+//           args: [2, 120],
+//           msg: "Customer name must be between 2 and 120 characters",
+//         },
+//       },
+//     },
+
+//     // ✅ NEW REQUIRED FIELD
+//     customerEmail: {
+//       type: DataTypes.STRING(150),
+//       allowNull: false,
+//       validate: {
+//         notNull: { msg: "Customer email is required" },
+//         notEmpty: { msg: "Customer email cannot be empty" },
+//         isEmail: { msg: "Must be a valid email address" },
+//       },
+//     },
+
+//     // ✅ REQUIRED
+//     customerPhone: {
+//       type: DataTypes.STRING(20),
+//       allowNull: false,
+//       validate: {
+//         notNull: { msg: "Customer phone is required" },
+//         notEmpty: { msg: "Customer phone cannot be empty" },
+//         len: {
+//           args: [6, 20],
+//           msg: "Customer phone must be between 6 and 20 digits",
+//         },
+//       },
+//     },
+//   },
+//   {
+//     tableName: "orders",
+
+//     timestamps: true,
+
+//     indexes: [
+//       { fields: ["productId"] },
+//       { fields: ["customerEmail"] },
+//       { fields: ["paymentStatus"] },
+//       { fields: ["status"] },
+//       { fields: ["createdAt"] },
+//     ],
+//   }
+// );
+
+// module.exports = Order;
+
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
 const Order = sequelize.define(
   "Order",
   {
+    /*
+    =====================================
+    PRIMARY KEY
+    =====================================
+    */
+
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
@@ -11,21 +161,46 @@ const Order = sequelize.define(
       allowNull: false,
     },
 
+    /*
+    =====================================
+    PRODUCT FOREIGN KEY
+    =====================================
+    */
+
     productId: {
       type: DataTypes.UUID,
       allowNull: false,
+
+      references: {
+        model: "products",
+        key: "id",
+      },
+
+      onDelete: "RESTRICT",
+      onUpdate: "CASCADE",
+
       validate: {
-        notNull: { msg: "Product ID is required" },
-        notEmpty: { msg: "Product ID cannot be empty" },
+        notNull: { msg: "Product is required" },
+        isUUID: {
+          args: 4,
+          msg: "Invalid product ID",
+        },
       },
     },
+
+    /*
+    =====================================
+    ORDER DETAILS
+    =====================================
+    */
 
     quantity: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 1,
+
       validate: {
-        isInt: { msg: "Quantity must be an integer" },
+        isInt: { msg: "Quantity must be integer" },
         min: { args: [1], msg: "Quantity must be at least 1" },
       },
     },
@@ -33,12 +208,18 @@ const Order = sequelize.define(
     amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
-      defaultValue: 0,
+
       validate: {
-        isDecimal: { msg: "Amount must be a decimal number" },
-        min: { args: [0], msg: "Amount cannot be negative" },
+        isDecimal: true,
+        min: 0,
       },
     },
+
+    /*
+    =====================================
+    PAYMENT DETAILS
+    =====================================
+    */
 
     paymentMode: {
       type: DataTypes.ENUM("OFFLINE", "ONLINE"),
@@ -58,12 +239,6 @@ const Order = sequelize.define(
       ),
       allowNull: false,
       defaultValue: "CREATED",
-    },
-
-    status: {
-      type: DataTypes.ENUM("ACTIVE", "CANCELLED"),
-      allowNull: false,
-      defaultValue: "ACTIVE",
     },
 
     paymentMethod: {
@@ -86,45 +261,114 @@ const Order = sequelize.define(
       allowNull: true,
     },
 
-    // ✅ REQUIRED
-    customerName: {
+    /*
+    =====================================
+    ORDER STATUS
+    =====================================
+    */
+
+    status: {
+      type: DataTypes.ENUM("ACTIVE", "CANCELLED"),
+      allowNull: false,
+      defaultValue: "ACTIVE",
+    },
+
+    /*
+    =====================================
+    CUSTOMER DETAILS
+    =====================================
+    */
+
+    customerFirstName: {
       type: DataTypes.STRING(120),
       allowNull: false,
+
       validate: {
-        notNull: { msg: "Customer name is required" },
-        notEmpty: { msg: "Customer name cannot be empty" },
+        notNull: { msg: "First name required" },
+        notEmpty: { msg: "First name cannot be empty" },
         len: {
           args: [2, 120],
-          msg: "Customer name must be between 2 and 120 characters",
+          msg: "First name must be between 2 and 120 characters",
         },
       },
     },
 
-    // ✅ NEW REQUIRED FIELD
+    customerLastName: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+
+      // validate: {
+      //   notNull: { msg: "Last name required" },
+      //   notEmpty: { msg: "Last name cannot be empty" },
+      //   len: {
+      //     args: [1, 120],
+      //     msg: "Last name must be between 1 and 120 characters",
+      //   },
+      // },
+    },
+
     customerEmail: {
       type: DataTypes.STRING(150),
       allowNull: false,
+
       validate: {
-        notNull: { msg: "Customer email is required" },
-        notEmpty: { msg: "Customer email cannot be empty" },
-        isEmail: { msg: "Must be a valid email address" },
+        isEmail: { msg: "Invalid email address" },
       },
     },
 
-    // ✅ REQUIRED
-    customerPhone: {
+    /*
+    =====================================
+    PHONE DETAILS
+    =====================================
+    */
+
+    customerCountryCode: {
+      type: DataTypes.STRING(10),
+      // allowNull: false,
+
+      // validate: {
+      //   notNull: { msg: "Country code required" },
+      //   notEmpty: { msg: "Country code required" },
+      // },
+    },
+
+    customerPhoneNumber: {
       type: DataTypes.STRING(20),
-      allowNull: false,
-      validate: {
-        notNull: { msg: "Customer phone is required" },
-        notEmpty: { msg: "Customer phone cannot be empty" },
-        len: {
-          args: [6, 20],
-          msg: "Customer phone must be between 6 and 20 digits",
-        },
-      },
+      // allowNull: false,
+
+      // validate: {
+      //   notNull: { msg: "Phone number required" },
+      //   notEmpty: { msg: "Phone number required" },
+      // },
+    },
+
+    /*
+    =====================================
+    ADDRESS DETAILS
+    =====================================
+    */
+
+    customerCountry: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+    },
+
+    customerState: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+    },
+
+    customerCity: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+    },
+
+    customerAddress: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
     },
   },
+
   {
     tableName: "orders",
 

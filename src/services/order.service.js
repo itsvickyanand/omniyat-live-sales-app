@@ -229,7 +229,8 @@ const cancelOrderService = async ({ id }) => {
       RESTORE STOCK CORRECTLY
       */
 
-      product.stock += freshOrder.quantity;
+      // product.stock += freshOrder.quantity;
+      product.stock = 1;
 
       await product.save({ transaction: t });
 

@@ -100,7 +100,9 @@ const mockFail = async (req, res) => {
       });
 
       if (product) {
-        product.stock += order.quantity;
+        // product.stock += order.quantity;
+        product.stock = 1;
+
         await product.save({ transaction: t });
       }
 
@@ -136,7 +138,9 @@ const mockCancel = async (req, res) => {
       });
 
       if (product) {
-        product.stock += order.quantity;
+        // product.stock += order.quantity;
+        product.stock = 1;
+
         await product.save({ transaction: t });
       }
 

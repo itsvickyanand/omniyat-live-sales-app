@@ -275,6 +275,206 @@ CCAvenue RESPONSE HANDLER
 ===========================================================
 */
 
+// const ccavenueResponseHandler = async (req, res) => {
+//   const reqId = uuidv4().slice(0, 8);
+
+//   console.log(`\n==============================`);
+//   console.log(`🟣 [${reqId}] PAYMENT RESPONSE START`);
+//   console.log(`==============================`);
+
+//   let transaction;
+
+//   try {
+//     console.log(`[${reqId}] Step 1: Reading raw body`);
+
+//     const rawBody = req.body.toString();
+//     console.log(`[${reqId}] Raw body length:`, rawBody.length);
+
+//     const parsedBody = qs.parse(rawBody);
+//     console.log(`[${reqId}] Parsed body keys:`, Object.keys(parsedBody));
+
+//     const encResp = parsedBody.encResp;
+
+//     if (!encResp) {
+//       console.log(`[${reqId}] ❌ encResp missing`);
+//       throw new Error("encResp missing");
+//     }
+
+//     console.log(`[${reqId}] Step 2: Decrypting response`);
+
+//     const decrypted = decrypt(encResp, process.env.CCAV_WORKING_KEY);
+//     console.log(`[${reqId}] Decrypted string length:`, decrypted.length);
+
+//     const parsed = qs.parse(decrypted);
+
+//     console.log(`[${reqId}] Gateway response parsed:`);
+//     console.log(parsed);
+
+//     const orderId = parsed.merchant_param1;
+
+//     console.log(`[${reqId}] Step 3: OrderId extracted:`, orderId);
+
+//     if (!orderId) {
+//       throw new Error("merchant_param1 missing");
+//     }
+
+//     /*
+//     Start transaction
+//     */
+//     console.log(`[${reqId}] Step 4: Starting DB transaction`);
+
+//     transaction = await sequelize.transaction();
+
+//     console.log(`[${reqId}] Transaction started`);
+
+//     /*
+//     Lock order
+//     */
+//     console.log(`[${reqId}] Step 5: Fetching order`);
+
+//     const order = await Order.findByPk(orderId, {
+//       transaction,
+//       lock: transaction.LOCK.UPDATE,
+//     });
+
+//     if (!order) {
+//       throw new Error("Order not found");
+//     }
+
+//     console.log(`[${reqId}] Order found`, {
+//       id: order.id,
+//       productId: order.productId,
+//       quantity: order.quantity,
+//       paymentStatus: order.paymentStatus,
+//     });
+
+//     /*
+//     Idempotency protection
+//     */
+//     if (
+//       order.paymentStatus === "PAID" ||
+//       order.paymentStatus === "FAILED" ||
+//       order.paymentStatus === "CANCELLED"
+//     ) {
+//       console.log(`[${reqId}] Already processed`);
+
+//       await transaction.commit();
+
+//       return res.redirect(
+//         `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${order.paymentStatus}`
+//       );
+//     }
+
+//     /*
+//     Determine final status
+//     */
+//     console.log(`[${reqId}] Step 6: Determining payment status`);
+
+//     let finalStatus = "FAILED";
+
+//     switch (parsed.order_status) {
+//       case "Success":
+//         finalStatus = "PAID";
+//         break;
+
+//       case "Aborted":
+//         finalStatus = "CANCELLED";
+//         break;
+
+//       case "Failure":
+//         finalStatus = "FAILED";
+//         break;
+//     }
+
+//     console.log(`[${reqId}] Final status:`, finalStatus);
+
+//     /*
+//     Proper payment method mapping
+//     */
+//     const mapPaymentMethod = (mode) => {
+//       if (!mode || mode === "null") return "OTHER";
+
+//       const m = mode.toLowerCase();
+
+//       if (m.includes("upi")) return "UPI";
+
+//       if (m.includes("card") || m.includes("credit") || m.includes("debit"))
+//         return "CARD";
+
+//       if (m.includes("cash")) return "CASH";
+
+//       return "OTHER";
+//     };
+
+//     /*
+//     Update order
+//     */
+//     console.log(`[${reqId}] Step 7: Updating order`);
+
+//     await order.update(
+//       {
+//         paymentStatus: finalStatus,
+//         paymentMethod: mapPaymentMethod(parsed.payment_mode),
+//         gatewayTrackingId:
+//           parsed.tracking_id && parsed.tracking_id !== "null"
+//             ? parsed.tracking_id
+//             : null,
+//         paymentResponseRaw: JSON.stringify(parsed),
+//       },
+//       { transaction }
+//     );
+
+//     console.log(`[${reqId}] Order updated`);
+
+//     /*
+//     Restore stock if NOT paid
+//     */
+//     if (finalStatus !== "PAID") {
+//       console.log(`[${reqId}] Step 8: Restoring stock`);
+
+//       const product = await Product.findByPk(order.productId, {
+//         transaction,
+//         lock: transaction.LOCK.UPDATE,
+//       });
+
+//       if (!product) {
+//         throw new Error("Product not found");
+//       }
+
+//       console.log(`[${reqId}] Current stock:`, product.stock);
+
+//       await product.increment({ stock: order.quantity }, { transaction });
+
+//       await product.reload({ transaction });
+
+//       console.log(`[${reqId}] Stock restored →`, product.stock);
+//     }
+
+//     /*
+//     Commit
+//     */
+//     console.log(`[${reqId}] Step 9: Commit`);
+
+//     await transaction.commit();
+
+//     console.log(`[${reqId}] SUCCESS`);
+
+//     return res.redirect(
+//       `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${finalStatus}`
+//     );
+//   } catch (err) {
+//     console.error(`🔴 [${reqId}] ERROR`, err);
+
+//     if (transaction) {
+//       await transaction.rollback();
+//       console.log(`[${reqId}] Transaction rolled back`);
+//     }
+
+//     return res.redirect(
+//       `${FRONTEND_BASE}/dashboard/payment-status?status=ERROR`
+//     );
+//   }
+// };
 const ccavenueResponseHandler = async (req, res) => {
   const reqId = uuidv4().slice(0, 8);
 
@@ -285,189 +485,132 @@ const ccavenueResponseHandler = async (req, res) => {
   let transaction;
 
   try {
-    console.log(`[${reqId}] Step 1: Reading raw body`);
-
     const rawBody = req.body.toString();
-    console.log(`[${reqId}] Raw body length:`, rawBody.length);
-
     const parsedBody = qs.parse(rawBody);
-    console.log(`[${reqId}] Parsed body keys:`, Object.keys(parsedBody));
-
     const encResp = parsedBody.encResp;
 
-    if (!encResp) {
-      console.log(`[${reqId}] ❌ encResp missing`);
-      throw new Error("encResp missing");
-    }
-
-    console.log(`[${reqId}] Step 2: Decrypting response`);
+    if (!encResp) throw new Error("encResp missing");
 
     const decrypted = decrypt(encResp, process.env.CCAV_WORKING_KEY);
-    console.log(`[${reqId}] Decrypted string length:`, decrypted.length);
-
     const parsed = qs.parse(decrypted);
 
-    console.log(`[${reqId}] Gateway response parsed:`);
-    console.log(parsed);
+    console.log(`[${reqId}] 🔎 Gateway order_status:`, parsed.order_status);
+    console.log(`[${reqId}] 🔎 tracking_id:`, parsed.tracking_id);
+    console.log(`[${reqId}] 🔎 merchant_param1:`, parsed.merchant_param1);
 
     const orderId = parsed.merchant_param1;
-
-    console.log(`[${reqId}] Step 3: OrderId extracted:`, orderId);
-
-    if (!orderId) {
-      throw new Error("merchant_param1 missing");
-    }
-
-    /*
-    Start transaction
-    */
-    console.log(`[${reqId}] Step 4: Starting DB transaction`);
+    if (!orderId) throw new Error("merchant_param1 missing");
 
     transaction = await sequelize.transaction();
-
-    console.log(`[${reqId}] Transaction started`);
-
-    /*
-    Lock order
-    */
-    console.log(`[${reqId}] Step 5: Fetching order`);
+    console.log(`[${reqId}] 🔐 Transaction started`);
 
     const order = await Order.findByPk(orderId, {
       transaction,
       lock: transaction.LOCK.UPDATE,
     });
 
-    if (!order) {
-      throw new Error("Order not found");
-    }
+    if (!order) throw new Error("Order not found");
 
-    console.log(`[${reqId}] Order found`, {
+    console.log(`[${reqId}] 📦 Order before update:`, {
       id: order.id,
       productId: order.productId,
       quantity: order.quantity,
       paymentStatus: order.paymentStatus,
     });
 
-    /*
-    Idempotency protection
-    */
-    if (
-      order.paymentStatus === "PAID" ||
-      order.paymentStatus === "FAILED" ||
-      order.paymentStatus === "CANCELLED"
-    ) {
-      console.log(`[${reqId}] Already processed`);
-
+    // Idempotency check
+    if (["PAID", "FAILED", "CANCELLED"].includes(order.paymentStatus)) {
+      console.log(`[${reqId}] ⚠️ Already processed →`, order.paymentStatus);
       await transaction.commit();
-
       return res.redirect(
         `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${order.paymentStatus}`
       );
     }
 
-    /*
-    Determine final status
-    */
-    console.log(`[${reqId}] Step 6: Determining payment status`);
-
     let finalStatus = "FAILED";
 
     switch (parsed.order_status) {
       case "Success":
+      case "Successful":
         finalStatus = "PAID";
         break;
-
       case "Aborted":
+      case "Cancelled":
         finalStatus = "CANCELLED";
         break;
-
       case "Failure":
+      case "Unsuccessful":
         finalStatus = "FAILED";
         break;
     }
 
-    console.log(`[${reqId}] Final status:`, finalStatus);
+    console.log(`[${reqId}] ✅ Final status resolved →`, finalStatus);
 
-    /*
-    Proper payment method mapping
-    */
     const mapPaymentMethod = (mode) => {
-      if (!mode || mode === "null") return "OTHER";
+      if (!mode) return "OTHER";
 
       const m = mode.toLowerCase();
 
       if (m.includes("upi")) return "UPI";
-
-      if (m.includes("card") || m.includes("credit") || m.includes("debit"))
-        return "CARD";
-
-      if (m.includes("cash")) return "CASH";
+      if (m.includes("card")) return "CARD";
+      if (m.includes("credit")) return "CARD";
+      if (m.includes("debit")) return "CARD";
+      if (m.includes("net")) return "NETBANKING";
+      if (m.includes("wallet")) return "WALLET";
 
       return "OTHER";
     };
-
-    /*
-    Update order
-    */
-    console.log(`[${reqId}] Step 7: Updating order`);
-
+    console.log(
+      `[${reqId}] Saving paymentMethod:`,
+      mapPaymentMethod(parsed.payment_mode)
+    );
     await order.update(
       {
         paymentStatus: finalStatus,
         paymentMethod: mapPaymentMethod(parsed.payment_mode),
-        gatewayTrackingId:
-          parsed.tracking_id && parsed.tracking_id !== "null"
-            ? parsed.tracking_id
-            : null,
+        gatewayTrackingId: parsed.tracking_id || null,
         paymentResponseRaw: JSON.stringify(parsed),
       },
       { transaction }
     );
 
-    console.log(`[${reqId}] Order updated`);
+    console.log(`[${reqId}] 📝 Order updated to →`, finalStatus);
 
-    /*
-    Restore stock if NOT paid
-    */
+    const product = await Product.findByPk(order.productId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    if (!product) throw new Error("Product not found");
+
+    console.log(`[${reqId}] 📊 Product stock BEFORE logic:`, product.stock);
+
     if (finalStatus !== "PAID") {
-      console.log(`[${reqId}] Step 8: Restoring stock`);
-
-      const product = await Product.findByPk(order.productId, {
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-
-      if (!product) {
-        throw new Error("Product not found");
-      }
-
-      console.log(`[${reqId}] Current stock:`, product.stock);
+      console.log(`[${reqId}] 🔄 Restoring stock...`);
 
       await product.increment({ stock: order.quantity }, { transaction });
 
       await product.reload({ transaction });
 
-      console.log(`[${reqId}] Stock restored →`, product.stock);
+      console.log(`[${reqId}] 📊 Product stock AFTER restore:`, product.stock);
+    } else {
+      console.log(
+        `[${reqId}] 🟢 Payment successful — NO stock restore (expected)`
+      );
     }
 
-    /*
-    Commit
-    */
-    console.log(`[${reqId}] Step 9: Commit`);
-
     await transaction.commit();
-
-    console.log(`[${reqId}] SUCCESS`);
+    console.log(`[${reqId}] 💾 Transaction committed`);
 
     return res.redirect(
       `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${finalStatus}`
     );
   } catch (err) {
-    console.error(`🔴 [${reqId}] ERROR`, err);
+    console.error(`🔴 [${reqId}] ERROR →`, err.message);
 
     if (transaction) {
       await transaction.rollback();
-      console.log(`[${reqId}] Transaction rolled back`);
+      console.log(`[${reqId}] ❌ Transaction rolled back`);
     }
 
     return res.redirect(

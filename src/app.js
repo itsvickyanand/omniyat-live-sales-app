@@ -31,6 +31,7 @@ const paymentRoutes = require("./routes/payment.routes");
 const mockPaymentRoutes = require("./routes/mockPayment.routes");
 const adminAuthRoutes = require("./routes/adminAuth.routes");
 const artistRoutes = require("./routes/artist.routes");
+const ccavenueLookupRoutes = require("./routes/ccavenueLookup.routes");
 
 const app = express();
 app.use(cookieParser());
@@ -104,6 +105,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/mock-payment", mockPaymentRoutes);
 app.use("/api/artist", artistRoutes);
 app.use("/api/debug", require("./routes/debug.routes"));
+app.use("/api/admin", ccavenueLookupRoutes);
 
 /*
 =====================================================

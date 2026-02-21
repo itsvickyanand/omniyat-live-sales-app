@@ -15,62 +15,62 @@
 // const artistRoutes = require("./routes/artist.routes");
 
 // const app = express();
+
 // app.use(cookieParser());
 
 // /*
-// IMPORTANT: CCAvenue sends RAW body.
-// This must be registered BEFORE express.json()
+// IMPORTANT: RAW body FIRST (CCAvenue)
 // */
 // app.use("/api/payment/ccavenue/response", express.raw({ type: "*/*" }));
 
 // /*
-// Normal parsers for rest of routes
+// CORS MUST BE BEFORE JSON PARSER
 // */
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
-
-// // const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
-// //   ? process.env.CORS_ALLOWED_ORIGINS.split(",")
-// //   : [];
-
-// // app.use(
-// //   cors({
-// //     origin: function (origin, callback) {
-// //       // ✅ CRITICAL FIX: allow server-to-server calls (CCAvenue)
-// //       if (!origin) {
-// //         return callback(null, true);
-// //       }
-
-// //       if (allowedOrigins.includes(origin)) {
-// //         return callback(null, true);
-// //       }
-
-// //       console.warn("Blocked by CORS:", origin);
-
-// //       // ❌ DO NOT throw error
-// //       return callback(null, true);
-// //     },
-// //     credentials: true,
-// //   })
-// // );
 // const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
 //   ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((o) => o.trim())
 //   : [];
 
+// /*
+// Add CCAvenue domains
+// */
+// const allowedGatewayOrigins = [
+//   "https://secure.ccavenue.ae",
+//   "https://test.ccavenue.ae",
+//   "https://secure.ccavenue.com",
+//   "https://test.ccavenue.com",
+// ];
+
 // app.use(
 //   cors({
 //     origin: function (origin, callback) {
-//       if (!origin) return callback(null, true);
-
-//       if (allowedOrigins.includes(origin)) {
-//         return callback(null, origin);
+//       // Allow server-to-server (Postman, cron, etc)
+//       if (!origin) {
+//         return callback(null, true);
 //       }
+
+//       // Allow frontend
+//       if (allowedOrigins.includes(origin)) {
+//         return callback(null, true);
+//       }
+
+//       // Allow CCAvenue
+//       if (allowedGatewayOrigins.includes(origin)) {
+//         return callback(null, true);
+//       }
+
+//       console.warn("Blocked by CORS:", origin);
 
 //       return callback(new Error("Not allowed by CORS"));
 //     },
 //     credentials: true,
 //   })
 // );
+
+// /*
+// NOW JSON parser
+// */
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
 
 // /*
 // Routes
@@ -93,7 +93,7 @@
 // });
 
 // /*
-// DB + Server start
+// Start server
 // */
 // db.sequelize
 //   .authenticate()
@@ -112,11 +112,35 @@
 //     console.log("❌ DB Connection error:", err.message);
 //   });
 
-require("dotenv").config();
+/*
+=====================================================
+ENVIRONMENT LOADER
+=====================================================
+*/
+
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = "development";
+}
+
+// Load correct env file based on NODE_ENV
+require("dotenv").config({
+  path: `.env.${process.env.NODE_ENV}`,
+});
+
+console.log("DB NAME:", process.env.DB_NAME);
+console.log("DB HOST:", process.env.DB_HOST);
+
+console.log("🌍 Environment:", process.env.NODE_ENV);
+
+/*
+=====================================================
+IMPORTS
+=====================================================
+*/
+
 const cors = require("cors");
 const express = require("express");
 const cookieParser = require("cookie-parser");
-
 const db = require("./models");
 
 const categoryRoutes = require("./routes/category.routes");
@@ -129,24 +153,26 @@ const adminAuthRoutes = require("./routes/adminAuth.routes");
 const artistRoutes = require("./routes/artist.routes");
 
 const app = express();
-
 app.use(cookieParser());
 
 /*
-IMPORTANT: RAW body FIRST (CCAvenue)
+=====================================================
+RAW BODY FIRST (CCAvenue)
+=====================================================
 */
+
 app.use("/api/payment/ccavenue/response", express.raw({ type: "*/*" }));
 
 /*
-CORS MUST BE BEFORE JSON PARSER
+=====================================================
+CORS
+=====================================================
 */
+
 const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
   ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((o) => o.trim())
   : [];
 
-/*
-Add CCAvenue domains
-*/
 const allowedGatewayOrigins = [
   "https://secure.ccavenue.ae",
   "https://test.ccavenue.ae",
@@ -157,23 +183,17 @@ const allowedGatewayOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow server-to-server (Postman, cron, etc)
-      if (!origin) {
-        return callback(null, true);
-      }
+      if (!origin) return callback(null, true);
 
-      // Allow frontend
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      // Allow CCAvenue
       if (allowedGatewayOrigins.includes(origin)) {
         return callback(null, true);
       }
 
       console.warn("Blocked by CORS:", origin);
-
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
@@ -181,14 +201,20 @@ app.use(
 );
 
 /*
-NOW JSON parser
+=====================================================
+BODY PARSERS
+=====================================================
 */
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /*
-Routes
+=====================================================
+ROUTES
+=====================================================
 */
+
 app.use("/admin", adminAuthRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/product", productRoutes);
@@ -200,28 +226,41 @@ app.use("/api/artist", artistRoutes);
 app.use("/api/debug", require("./routes/debug.routes"));
 
 /*
-Health check
+=====================================================
+HEALTH CHECK
+=====================================================
 */
+
 app.get("/", (req, res) => {
   res.send("Ecom Backend Running ✅");
 });
 
 /*
-Start server
+=====================================================
+START SERVER
+=====================================================
 */
+
 db.sequelize
   .authenticate()
   .then(async () => {
     console.log("✅ PostgreSQL connected successfully");
 
+    // Auto sync only in development + staging
+    // if (
+    //   process.env.NODE_ENV === "development" ||
+    //   process.env.NODE_ENV === "staging"
+    // ) {
     await db.sequelize.sync({ alter: true });
-
-    console.log("✅ Models synced");
+    console.log("⚙️ Schema synced (non-production)");
+    // } else {
+    //   console.log("🔒 Production mode - skipping auto sync");
+    // }
 
     app.listen(process.env.PORT || 3000, () => {
       console.log(`🚀 Server running on port ${process.env.PORT || 3000}`);
     });
   })
   .catch((err) => {
-    console.log("❌ DB Connection error:", err.message);
+    console.error("❌ DB Connection error:", err.message);
   });

@@ -369,16 +369,16 @@ const createOrder = async (req, res) => {
       );
     }
 
-    if (!isValidString(customerLastName)) {
-      return sendResponse(
-        res,
-        400,
-        false,
-        "Customer last name is required",
-        null,
-        "VALIDATION_ERROR"
-      );
-    }
+    // if (!isValidString(customerLastName)) {
+    //   return sendResponse(
+    //     res,
+    //     400,
+    //     false,
+    //     "Customer last name is required",
+    //     null,
+    //     "VALIDATION_ERROR"
+    //   );
+    // }
 
     if (!isValidString(customerEmail)) {
       return sendResponse(
@@ -391,82 +391,82 @@ const createOrder = async (req, res) => {
       );
     }
 
-    if (!isValidString(customerCountryCode)) {
-      return sendResponse(
-        res,
-        400,
-        false,
-        "Country code is required",
-        null,
-        "VALIDATION_ERROR"
-      );
-    }
+    // if (!isValidString(customerCountryCode)) {
+    //   return sendResponse(
+    //     res,
+    //     400,
+    //     false,
+    //     "Country code is required",
+    //     null,
+    //     "VALIDATION_ERROR"
+    //   );
+    // }
 
-    if (!isValidString(customerPhoneNumber)) {
-      return sendResponse(
-        res,
-        400,
-        false,
-        "Phone number is required",
-        null,
-        "VALIDATION_ERROR"
-      );
-    }
+    // if (!isValidString(customerPhoneNumber)) {
+    //   return sendResponse(
+    //     res,
+    //     400,
+    //     false,
+    //     "Phone number is required",
+    //     null,
+    //     "VALIDATION_ERROR"
+    //   );
+    // }
 
-    if (!isValidString(customerCountry)) {
-      return sendResponse(
-        res,
-        400,
-        false,
-        "Country is required",
-        null,
-        "VALIDATION_ERROR"
-      );
-    }
+    // if (!isValidString(customerCountry)) {
+    //   return sendResponse(
+    //     res,
+    //     400,
+    //     false,
+    //     "Country is required",
+    //     null,
+    //     "VALIDATION_ERROR"
+    //   );
+    // }
 
-    if (!isValidString(customerState)) {
-      return sendResponse(
-        res,
-        400,
-        false,
-        "State is required",
-        null,
-        "VALIDATION_ERROR"
-      );
-    }
+    // if (!isValidString(customerState)) {
+    //   return sendResponse(
+    //     res,
+    //     400,
+    //     false,
+    //     "State is required",
+    //     null,
+    //     "VALIDATION_ERROR"
+    //   );
+    // }
 
-    if (!isValidString(customerCity)) {
-      return sendResponse(
-        res,
-        400,
-        false,
-        "City is required",
-        null,
-        "VALIDATION_ERROR"
-      );
-    }
+    // if (!isValidString(customerCity)) {
+    //   return sendResponse(
+    //     res,
+    //     400,
+    //     false,
+    //     "City is required",
+    //     null,
+    //     "VALIDATION_ERROR"
+    //   );
+    // }
 
-    if (!isValidString(customerAddress)) {
-      return sendResponse(
-        res,
-        400,
-        false,
-        "Address is required",
-        null,
-        "VALIDATION_ERROR"
-      );
-    }
+    // if (!isValidString(customerAddress)) {
+    //   return sendResponse(
+    //     res,
+    //     400,
+    //     false,
+    //     "Address is required",
+    //     null,
+    //     "VALIDATION_ERROR"
+    //   );
+    // }
 
-    if (!isValidNumber(quantity) || Number(quantity) < 1) {
-      return sendResponse(
-        res,
-        400,
-        false,
-        "Quantity must be at least 1",
-        null,
-        "VALIDATION_ERROR"
-      );
-    }
+    // if (!isValidNumber(quantity) || Number(quantity) < 1) {
+    //   return sendResponse(
+    //     res,
+    //     400,
+    //     false,
+    //     "Quantity must be at least 1",
+    //     null,
+    //     "VALIDATION_ERROR"
+    //   );
+    // }
 
     /*
     CALL SERVICE

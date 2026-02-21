@@ -444,37 +444,37 @@ const createOrderService = async (payload) => {
       return errorResponse("customerFirstName is required");
     }
 
-    if (!customerLastName) {
-      return errorResponse("customerLastName is required");
-    }
+    // if (!customerLastName) {
+    //   return errorResponse("customerLastName is required");
+    // }
 
     if (!customerEmail) {
       return errorResponse("customerEmail is required");
     }
 
-    if (!customerCountryCode) {
-      return errorResponse("customerCountryCode is required");
-    }
+    // if (!customerCountryCode) {
+    //   return errorResponse("customerCountryCode is required");
+    // }
 
-    if (!customerPhoneNumber) {
-      return errorResponse("customerPhoneNumber is required");
-    }
+    // if (!customerPhoneNumber) {
+    //   return errorResponse("customerPhoneNumber is required");
+    // }
 
-    if (!customerCountry) {
-      return errorResponse("customerCountry is required");
-    }
+    // if (!customerCountry) {
+    //   return errorResponse("customerCountry is required");
+    // }
 
-    if (!customerState) {
-      return errorResponse("customerState is required");
-    }
+    // if (!customerState) {
+    //   return errorResponse("customerState is required");
+    // }
 
-    if (!customerCity) {
-      return errorResponse("customerCity is required");
-    }
+    // if (!customerCity) {
+    //   return errorResponse("customerCity is required");
+    // }
 
-    if (!customerAddress) {
-      return errorResponse("customerAddress is required");
-    }
+    // if (!customerAddress) {
+    //   return errorResponse("customerAddress is required");
+    // }
 
     if (!quantity || Number(quantity) < 1) {
       return errorResponse("quantity must be >= 1");

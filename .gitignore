@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+AZURE_ECOM_INFRASTRUCTURE.md
+AZURE_POSTGRES_SETUP.md
+azureinfo.md

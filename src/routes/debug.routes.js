@@ -1,21 +1,3 @@
-// const express = require("express");
-// const router = express.Router();
-
-// const { Order } = require("../models");
-// const { checkCcavenueStatus } = require("../services/ccavenueStatus.service");
-// router.get("/check/:orderId", async (req, res) => {
-//   const order = await Order.findByPk(req.params.orderId);
-
-//   console.log("DB Order ID:", order.id);
-//   console.log("Gateway Order ID:", order.gatewayOrderId);
-
-//   const result = await checkCcavenueStatus(order);
-
-//   res.json(result);
-// });
-
-// module.exports = router;
-
 const express = require("express");
 const router = express.Router();
 

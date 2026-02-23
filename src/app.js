@@ -17,6 +17,7 @@ console.log("🌍 Environment:", process.env.NODE_ENV);
 IMPORTS
 =====================================================
 */
+const runPaymentReconciliation = require("./cron/paymentReconciliation.cron");
 
 const cors = require("cors");
 const express = require("express");
@@ -138,6 +139,7 @@ db.sequelize
     // } else {
     //   console.log("🔒 Production mode - skipping auto sync");
     // }
+    runPaymentReconciliation();
 
     app.listen(process.env.PORT || 3000, () => {
       console.log(`🚀 Server running on port ${process.env.PORT || 3000}`);

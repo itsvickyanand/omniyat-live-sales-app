@@ -193,32 +193,32 @@ const fetchSingleOrderFromCCA = async (
   try {
     console.log(`[${reqId}] 📡 Fetching from CCAvenue →`, orderNo);
 
-    // const formatDate = (date) => {
-    //   const d = new Date(date);
-    //   const day = String(d.getDate()).padStart(2, "0");
-    //   const month = String(d.getMonth() + 1).padStart(2, "0");
-    //   const year = d.getFullYear();
-    //   return `${day}-${month}-${year}`;
-    // };
+    const formatDate = (date) => {
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${day}-${month}-${year}`;
+    };
 
     // const fromDate = formatDate(orderCreatedAt);
     // const toDate = formatDate(new Date());
 
-    const formatDate = (date) => {
-      const d = new Date(date);
+    // const formatDate = (date) => {
+    //   const d = new Date(date);
 
-      const day = String(d.getUTCDate()).padStart(2, "0");
-      const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-      const year = d.getUTCFullYear();
+    //   const day = String(d.getUTCDate()).padStart(2, "0");
+    //   const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+    //   const year = d.getUTCFullYear();
 
-      return `${day}-${month}-${year}`;
-    };
+    //   return `${day}-${month}-${year}`;
+    // };
 
     // 🔥 Create safe date window
     const created = new Date(orderCreatedAt);
 
     // Subtract 1 day for timezone + gateway batch safety
-    created.setUTCDate(created.getUTCDate() - 1);
+    created.setDate(created.getDate() - 1);
 
     const fromDate = formatDate(created);
     const toDate = formatDate(new Date());
@@ -293,3 +293,192 @@ module.exports = {
   fetchCcavenueTransactions,
   fetchSingleOrderFromCCA,
 };
+
+// const qs = require("querystring");
+// const axios = require("axios");
+
+// const { encrypt, decrypt } = require("../utils/ccavenue");
+
+// const CCAV_ACCESS_CODE = process.env.CCAV_ACCESS_CODE;
+// const CCAV_WORKING_KEY = process.env.CCAV_WORKING_KEY;
+// const CCAV_MERCHANT_ID = process.env.CCAV_MERCHANT_ID;
+
+// const CCAV_STATUS_URL = "https://login.ccavenue.ae/apis/servlet/DoWebTrans";
+
+// /*
+// ===========================================================
+// FETCH TRANSACTIONS BETWEEN DATE RANGE
+// ===========================================================
+// */
+
+// const fetchCcavenueTransactions = async (fromDate, toDate) => {
+//   const formatDateForCCAvenue = (date) => {
+//     const d = new Date(date);
+
+//     const day = String(d.getUTCDate()).padStart(2, "0");
+//     const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+//     const year = d.getUTCFullYear();
+
+//     return `${day}-${month}-${year}`;
+//   };
+
+//   try {
+//     if (!fromDate || !toDate) {
+//       throw new Error("fromDate and toDate required");
+//     }
+
+//     console.log("Fetching CCAvenue transactions");
+//     console.log("From:", fromDate);
+//     console.log("To:", toDate);
+
+//     const plainJSON = JSON.stringify({
+//       merchant_id: CCAV_MERCHANT_ID,
+//       from_date: formatDateForCCAvenue(fromDate),
+//       to_date: formatDateForCCAvenue(toDate),
+//     });
+
+//     console.log("Plain JSON:", plainJSON);
+
+//     const encRequest = encrypt(plainJSON, CCAV_WORKING_KEY);
+
+//     const requestBody = qs.stringify({
+//       enc_request: encRequest,
+//       access_code: CCAV_ACCESS_CODE,
+//       command: "orderStatusTracker",
+//       request_type: "JSON",
+//       response_type: "JSON",
+//       version: "1.2",
+//     });
+
+//     const response = await axios.post(CCAV_STATUS_URL, requestBody, {
+//       headers: {
+//         "Content-Type": "application/x-www-form-urlencoded",
+//       },
+//       timeout: 20000,
+//     });
+
+//     console.log("Raw response:", response.data);
+
+//     const parsed = qs.parse(response.data);
+
+//     if (parsed.status !== "0") {
+//       console.log("CCAvenue returned error:", parsed);
+//       return parsed;
+//     }
+
+//     const decrypted = decrypt(parsed.enc_response, CCAV_WORKING_KEY);
+
+//     console.log("Decrypted:", decrypted);
+
+//     const result = JSON.parse(decrypted);
+
+//     return result;
+//   } catch (error) {
+//     console.error("CCAvenue fetch transactions error:", error.message);
+//     return null;
+//   }
+// };
+
+// /*
+// ===========================================================
+// FETCH SINGLE ORDER (DATE ISSUE FIXED PROPERLY)
+// ===========================================================
+// */
+
+// const fetchSingleOrderFromCCA = async (
+//   orderNo,
+//   orderCreatedAt,
+//   reqId = "N/A"
+// ) => {
+//   try {
+//     console.log(`[${reqId}] 📡 Fetching from CCAvenue →`, orderNo);
+
+//     const formatDateUTC = (date) => {
+//       const d = new Date(date);
+//       const day = String(d.getUTCDate()).padStart(2, "0");
+//       const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+//       const year = d.getUTCFullYear();
+//       return `${day}-${month}-${year}`;
+//     };
+
+//     /*
+//     🔥 SAFE 3-DAY BANDWIDTH WINDOW (UTC SAFE)
+//     This completely removes date boundary failure
+//     */
+
+//     const nowUTC = new Date();
+
+//     const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+//     const fromUTC = new Date(nowUTC.getTime() - THREE_DAYS_MS);
+
+//     const fromDate = formatDateUTC(fromUTC);
+//     const toDate = formatDateUTC(nowUTC);
+
+//     console.log(
+//       `[${reqId}] 📅 Using SAFE 3-day window (UTC): ${fromDate} → ${toDate}`
+//     );
+
+//     const payloadString =
+//       `|` +
+//       `${orderNo}|` +
+//       `${fromDate}|` +
+//       `${toDate}|` +
+//       `|` +
+//       `|` +
+//       `|` +
+//       `|` +
+//       `|` +
+//       `|` +
+//       `|` +
+//       `|` +
+//       `|` +
+//       `|` +
+//       `|` +
+//       `1|`;
+
+//     console.log(`[${reqId}] 📄 Payload STRING:`, payloadString);
+
+//     const encRequest = encrypt(payloadString, CCAV_WORKING_KEY);
+
+//     const body = {
+//       enc_request: encRequest,
+//       access_code: CCAV_ACCESS_CODE,
+//       command: "orderLookup",
+//       request_type: "STRING",
+//       response_type: "JSON",
+//       version: "1.1",
+//     };
+
+//     const response = await axios.post(CCAV_STATUS_URL, qs.stringify(body), {
+//       headers: {
+//         "Content-Type": "application/x-www-form-urlencoded",
+//       },
+//       timeout: 15000,
+//     });
+
+//     console.log(`[${reqId}] 📥 Raw response:`, response.data);
+
+//     const parsed = qs.parse(response.data);
+
+//     if (parsed.status !== "0") {
+//       throw new Error("CCAvenue error");
+//     }
+
+//     const decrypted = decrypt(parsed.enc_response, CCAV_WORKING_KEY);
+
+//     console.log(`[${reqId}] 🔓 Decrypted response:`, decrypted);
+
+//     const jsonData = JSON.parse(decrypted);
+
+//     return jsonData.order_Status_List?.[0] || null;
+//   } catch (err) {
+//     console.error(`[${reqId}] 🔴 Service Error →`, err.message);
+//     throw err;
+//   }
+// };
+
+// module.exports = {
+//   fetchCcavenueTransactions,
+//   fetchSingleOrderFromCCA,
+// };

@@ -128,147 +128,6 @@ const initiateCcavenuePayment = async (req, res) => {
   }
 };
 
-// const initiateCcavenuePayment = async (req, res) => {
-//   const reqId = uuidv4().slice(0, 8);
-
-//   console.log(`\n🟢 [${reqId}] INITIATE PAYMENT START`);
-
-//   try {
-//     const { orderId } = req.body;
-
-//     if (!orderId) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "orderId is required",
-//       });
-//     }
-
-//     const order = await Order.findByPk(orderId);
-
-//     if (!order) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "Order not found",
-//       });
-//     }
-//     if (order.paymentMode === "OFFLINE" && order.paymentStatus === "PAID") {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Offline paid orders cannot be paid online",
-//       });
-//     }
-//     if (order.paymentStatus !== "PENDING") {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Only pending orders can be paid",
-//       });
-//     }
-
-//     /*
-//     Prevent duplicate payment attempts
-//     */
-//     if (order.paymentStatus === "PAID") {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Order already paid",
-//       });
-//     }
-
-//     /*
-//     Validate environment
-//     */
-//     const {
-//       CCAV_MERCHANT_ID,
-//       CCAV_ACCESS_CODE,
-//       CCAV_WORKING_KEY,
-//       CCAV_REDIRECT_URL,
-//       CCAV_CANCEL_URL,
-//     } = process.env;
-
-//     if (
-//       !CCAV_MERCHANT_ID ||
-//       !CCAV_ACCESS_CODE ||
-//       !CCAV_WORKING_KEY ||
-//       !CCAV_REDIRECT_URL ||
-//       !CCAV_CANCEL_URL
-//     ) {
-//       console.error(`[${reqId}] Missing gateway env config`);
-
-//       return res.status(500).json({
-//         success: false,
-//         message: "Payment gateway not configured",
-//       });
-//     }
-
-//     /*
-//     Generate short ID (CCAvenue limit)
-//     */
-//     const shortOrderId = order.id.replace(/-/g, "").substring(0, 20);
-
-//     /*
-//     Prepare gateway payload
-//     */
-//     const rawData = {
-//       merchant_id: CCAV_MERCHANT_ID,
-//       order_id: shortOrderId,
-
-//       currency: "AED",
-//       amount: Number(order.amount).toFixed(2),
-
-//       redirect_url: CCAV_REDIRECT_URL,
-//       cancel_url: CCAV_CANCEL_URL,
-
-//       billing_name: order.customerName,
-//       billing_email: order.customerEmail,
-//       billing_tel: order.customerPhone,
-
-//       billing_address: "NA",
-//       billing_city: "NA",
-//       billing_state: "NA",
-//       billing_zip: "00000",
-//       billing_country: "AE",
-
-//       /*
-//       Critical mapping fields
-//       */
-//       merchant_param1: order.id,
-//       merchant_param2: order.customerEmail || "",
-//       merchant_param3: order.customerPhone || "",
-
-//       language: "EN",
-//     };
-
-//     const rawString = qs.stringify(rawData);
-
-//     const encRequest = encrypt(rawString, CCAV_WORKING_KEY);
-
-//     /*
-//     Update order safely
-//     */
-//     await order.update({
-//       paymentMode: "ONLINE",
-//       paymentStatus: "PENDING",
-//       gatewayOrderId: shortOrderId,
-//     });
-
-//     console.log(`🟢 [${reqId}] INITIATE SUCCESS`);
-
-//     return res.json({
-//       success: true,
-//       accessCode: CCAV_ACCESS_CODE,
-//       encRequest,
-//       orderId: order.id,
-//     });
-//   } catch (err) {
-//     console.error(`🔴 [${reqId}] INITIATE ERROR`, err);
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Payment initiation failed",
-//     });
-//   }
-// };
-
 /*
 ===========================================================
 CCAvenue RESPONSE HANDLER
@@ -285,189 +144,132 @@ CCAvenue RESPONSE HANDLER
 //   let transaction;
 
 //   try {
-//     console.log(`[${reqId}] Step 1: Reading raw body`);
-
 //     const rawBody = req.body.toString();
-//     console.log(`[${reqId}] Raw body length:`, rawBody.length);
-
 //     const parsedBody = qs.parse(rawBody);
-//     console.log(`[${reqId}] Parsed body keys:`, Object.keys(parsedBody));
-
 //     const encResp = parsedBody.encResp;
 
-//     if (!encResp) {
-//       console.log(`[${reqId}] ❌ encResp missing`);
-//       throw new Error("encResp missing");
-//     }
-
-//     console.log(`[${reqId}] Step 2: Decrypting response`);
+//     if (!encResp) throw new Error("encResp missing");
 
 //     const decrypted = decrypt(encResp, process.env.CCAV_WORKING_KEY);
-//     console.log(`[${reqId}] Decrypted string length:`, decrypted.length);
-
 //     const parsed = qs.parse(decrypted);
 
-//     console.log(`[${reqId}] Gateway response parsed:`);
-//     console.log(parsed);
+//     console.log(`[${reqId}] 🔎 Gateway order_status:`, parsed.order_status);
+//     console.log(`[${reqId}] 🔎 tracking_id:`, parsed.tracking_id);
+//     console.log(`[${reqId}] 🔎 merchant_param1:`, parsed.merchant_param1);
 
 //     const orderId = parsed.merchant_param1;
-
-//     console.log(`[${reqId}] Step 3: OrderId extracted:`, orderId);
-
-//     if (!orderId) {
-//       throw new Error("merchant_param1 missing");
-//     }
-
-//     /*
-//     Start transaction
-//     */
-//     console.log(`[${reqId}] Step 4: Starting DB transaction`);
+//     if (!orderId) throw new Error("merchant_param1 missing");
 
 //     transaction = await sequelize.transaction();
-
-//     console.log(`[${reqId}] Transaction started`);
-
-//     /*
-//     Lock order
-//     */
-//     console.log(`[${reqId}] Step 5: Fetching order`);
+//     console.log(`[${reqId}] 🔐 Transaction started`);
 
 //     const order = await Order.findByPk(orderId, {
 //       transaction,
 //       lock: transaction.LOCK.UPDATE,
 //     });
 
-//     if (!order) {
-//       throw new Error("Order not found");
-//     }
+//     if (!order) throw new Error("Order not found");
 
-//     console.log(`[${reqId}] Order found`, {
+//     console.log(`[${reqId}] 📦 Order before update:`, {
 //       id: order.id,
 //       productId: order.productId,
 //       quantity: order.quantity,
 //       paymentStatus: order.paymentStatus,
 //     });
 
-//     /*
-//     Idempotency protection
-//     */
-//     if (
-//       order.paymentStatus === "PAID" ||
-//       order.paymentStatus === "FAILED" ||
-//       order.paymentStatus === "CANCELLED"
-//     ) {
-//       console.log(`[${reqId}] Already processed`);
-
+//     // Idempotency check
+//     if (["PAID", "FAILED", "CANCELLED"].includes(order.paymentStatus)) {
+//       console.log(`[${reqId}] ⚠️ Already processed →`, order.paymentStatus);
 //       await transaction.commit();
-
 //       return res.redirect(
 //         `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${order.paymentStatus}`
 //       );
 //     }
 
-//     /*
-//     Determine final status
-//     */
-//     console.log(`[${reqId}] Step 6: Determining payment status`);
-
 //     let finalStatus = "FAILED";
 
 //     switch (parsed.order_status) {
 //       case "Success":
+//       case "Successful":
 //         finalStatus = "PAID";
 //         break;
-
 //       case "Aborted":
+//       case "Cancelled":
 //         finalStatus = "CANCELLED";
 //         break;
-
 //       case "Failure":
+//       case "Unsuccessful":
 //         finalStatus = "FAILED";
 //         break;
 //     }
 
-//     console.log(`[${reqId}] Final status:`, finalStatus);
+//     console.log(`[${reqId}] ✅ Final status resolved →`, finalStatus);
 
-//     /*
-//     Proper payment method mapping
-//     */
 //     const mapPaymentMethod = (mode) => {
-//       if (!mode || mode === "null") return "OTHER";
+//       if (!mode) return "OTHER";
 
 //       const m = mode.toLowerCase();
 
 //       if (m.includes("upi")) return "UPI";
-
-//       if (m.includes("card") || m.includes("credit") || m.includes("debit"))
-//         return "CARD";
-
-//       if (m.includes("cash")) return "CASH";
+//       if (m.includes("card")) return "CARD";
+//       if (m.includes("credit")) return "CARD";
+//       if (m.includes("debit")) return "CARD";
+//       if (m.includes("net")) return "NETBANKING";
+//       if (m.includes("wallet")) return "WALLET";
 
 //       return "OTHER";
 //     };
-
-//     /*
-//     Update order
-//     */
-//     console.log(`[${reqId}] Step 7: Updating order`);
-
+//     console.log(
+//       `[${reqId}] Saving paymentMethod:`,
+//       mapPaymentMethod(parsed.payment_mode)
+//     );
 //     await order.update(
 //       {
 //         paymentStatus: finalStatus,
 //         paymentMethod: mapPaymentMethod(parsed.payment_mode),
-//         gatewayTrackingId:
-//           parsed.tracking_id && parsed.tracking_id !== "null"
-//             ? parsed.tracking_id
-//             : null,
+//         gatewayTrackingId: parsed.tracking_id || null,
 //         paymentResponseRaw: JSON.stringify(parsed),
 //       },
 //       { transaction }
 //     );
 
-//     console.log(`[${reqId}] Order updated`);
+//     console.log(`[${reqId}] 📝 Order updated to →`, finalStatus);
 
-//     /*
-//     Restore stock if NOT paid
-//     */
+//     const product = await Product.findByPk(order.productId, {
+//       transaction,
+//       lock: transaction.LOCK.UPDATE,
+//     });
+
+//     if (!product) throw new Error("Product not found");
+
+//     console.log(`[${reqId}] 📊 Product stock BEFORE logic:`, product.stock);
+
 //     if (finalStatus !== "PAID") {
-//       console.log(`[${reqId}] Step 8: Restoring stock`);
-
-//       const product = await Product.findByPk(order.productId, {
-//         transaction,
-//         lock: transaction.LOCK.UPDATE,
-//       });
-
-//       if (!product) {
-//         throw new Error("Product not found");
-//       }
-
-//       console.log(`[${reqId}] Current stock:`, product.stock);
+//       console.log(`[${reqId}] 🔄 Restoring stock...`);
 
 //       await product.increment({ stock: order.quantity }, { transaction });
 
 //       await product.reload({ transaction });
 
-//       console.log(`[${reqId}] Stock restored →`, product.stock);
+//       console.log(`[${reqId}] 📊 Product stock AFTER restore:`, product.stock);
+//     } else {
+//       console.log(
+//         `[${reqId}] 🟢 Payment successful — NO stock restore (expected)`
+//       );
 //     }
 
-//     /*
-//     Commit
-//     */
-//     console.log(`[${reqId}] Step 9: Commit`);
-
 //     await transaction.commit();
-
-//     console.log(`[${reqId}] SUCCESS`);
+//     console.log(`[${reqId}] 💾 Transaction committed`);
 
 //     return res.redirect(
 //       `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${finalStatus}`
 //     );
 //   } catch (err) {
-//     console.error(`🔴 [${reqId}] ERROR`, err);
+//     console.error(`🔴 [${reqId}] ERROR →`, err.message);
 
 //     if (transaction) {
 //       await transaction.rollback();
-//       console.log(`[${reqId}] Transaction rolled back`);
+//       console.log(`[${reqId}] ❌ Transaction rolled back`);
 //     }
 
 //     return res.redirect(
@@ -477,32 +279,52 @@ CCAvenue RESPONSE HANDLER
 // };
 const ccavenueResponseHandler = async (req, res) => {
   const reqId = uuidv4().slice(0, 8);
+  let transaction;
 
   console.log(`\n==============================`);
   console.log(`🟣 [${reqId}] PAYMENT RESPONSE START`);
   console.log(`==============================`);
 
-  let transaction;
-
   try {
-    const rawBody = req.body.toString();
-    const parsedBody = qs.parse(rawBody);
-    const encResp = parsedBody.encResp;
+    // 🔍 Step 1: Log Request Metadata
+    console.log(`[${reqId}] 🔹 METHOD:`, req.method);
+    console.log(`[${reqId}] 🔹 HEADERS:`, JSON.stringify(req.headers, null, 2));
+    console.log(`[${reqId}] 🔹 CONTENT-TYPE:`, req.headers["content-type"]);
 
+    // 🔍 Step 2: Log Raw Body
+    const rawBody = req.body.toString();
+    console.log(`[${reqId}] 🔹 RAW BODY:`, rawBody);
+
+    const parsedBody = qs.parse(rawBody);
+    console.log(`[${reqId}] 🔹 PARSED BODY:`, parsedBody);
+
+    const encResp = parsedBody.encResp;
     if (!encResp) throw new Error("encResp missing");
 
-    const decrypted = decrypt(encResp, process.env.CCAV_WORKING_KEY);
-    const parsed = qs.parse(decrypted);
+    console.log(`[${reqId}] 🔐 encResp length:`, encResp.length);
 
-    console.log(`[${reqId}] 🔎 Gateway order_status:`, parsed.order_status);
+    // 🔓 Step 3: Decrypt
+    const decrypted = decrypt(encResp, process.env.CCAV_WORKING_KEY);
+    console.log(`[${reqId}] 🔓 DECRYPTED STRING:`, decrypted);
+
+    const parsed = qs.parse(decrypted);
+    console.log(`[${reqId}] 🔓 DECRYPTED PARSED OBJECT:`, parsed);
+
+    // 🔎 Log all important gateway fields
+    console.log(`[${reqId}] 🔎 order_status:`, parsed.order_status);
     console.log(`[${reqId}] 🔎 tracking_id:`, parsed.tracking_id);
+    console.log(`[${reqId}] 🔎 bank_ref_no:`, parsed.bank_ref_no);
+    console.log(`[${reqId}] 🔎 payment_mode:`, parsed.payment_mode);
     console.log(`[${reqId}] 🔎 merchant_param1:`, parsed.merchant_param1);
+    console.log(`[${reqId}] 🔎 amount:`, parsed.amount);
+    console.log(`[${reqId}] 🔎 currency:`, parsed.currency);
 
     const orderId = parsed.merchant_param1;
     if (!orderId) throw new Error("merchant_param1 missing");
 
+    // 🔐 Start DB Transaction
     transaction = await sequelize.transaction();
-    console.log(`[${reqId}] 🔐 Transaction started`);
+    console.log(`[${reqId}] 🔐 DB transaction started`);
 
     const order = await Order.findByPk(orderId, {
       transaction,
@@ -511,22 +333,21 @@ const ccavenueResponseHandler = async (req, res) => {
 
     if (!order) throw new Error("Order not found");
 
-    console.log(`[${reqId}] 📦 Order before update:`, {
-      id: order.id,
-      productId: order.productId,
-      quantity: order.quantity,
-      paymentStatus: order.paymentStatus,
-    });
+    console.log(`[${reqId}] 📦 ORDER BEFORE UPDATE:`, order.toJSON());
 
     // Idempotency check
     if (["PAID", "FAILED", "CANCELLED"].includes(order.paymentStatus)) {
       console.log(`[${reqId}] ⚠️ Already processed →`, order.paymentStatus);
+
       await transaction.commit();
-      return res.redirect(
-        `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${order.paymentStatus}`
-      );
+
+      const redirectUrl = `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${order.paymentStatus}`;
+      console.log(`[${reqId}] 🔁 REDIRECT URL (idempotent):`, redirectUrl);
+
+      return res.redirect(redirectUrl);
     }
 
+    // Resolve final status
     let finalStatus = "FAILED";
 
     switch (parsed.order_status) {
@@ -548,33 +369,30 @@ const ccavenueResponseHandler = async (req, res) => {
 
     const mapPaymentMethod = (mode) => {
       if (!mode) return "OTHER";
-
       const m = mode.toLowerCase();
-
       if (m.includes("upi")) return "UPI";
       if (m.includes("card")) return "CARD";
       if (m.includes("credit")) return "CARD";
       if (m.includes("debit")) return "CARD";
       if (m.includes("net")) return "NETBANKING";
       if (m.includes("wallet")) return "WALLET";
-
       return "OTHER";
     };
-    console.log(
-      `[${reqId}] Saving paymentMethod:`,
-      mapPaymentMethod(parsed.payment_mode)
-    );
+
+    const paymentMethod = mapPaymentMethod(parsed.payment_mode);
+    console.log(`[${reqId}] 💳 Payment method resolved:`, paymentMethod);
+
     await order.update(
       {
         paymentStatus: finalStatus,
-        paymentMethod: mapPaymentMethod(parsed.payment_mode),
+        paymentMethod,
         gatewayTrackingId: parsed.tracking_id || null,
         paymentResponseRaw: JSON.stringify(parsed),
       },
       { transaction }
     );
 
-    console.log(`[${reqId}] 📝 Order updated to →`, finalStatus);
+    console.log(`[${reqId}] 📝 Order updated`);
 
     const product = await Product.findByPk(order.productId, {
       transaction,
@@ -583,39 +401,40 @@ const ccavenueResponseHandler = async (req, res) => {
 
     if (!product) throw new Error("Product not found");
 
-    console.log(`[${reqId}] 📊 Product stock BEFORE logic:`, product.stock);
+    console.log(`[${reqId}] 📊 Product stock BEFORE:`, product.stock);
 
     if (finalStatus !== "PAID") {
       console.log(`[${reqId}] 🔄 Restoring stock...`);
-
       await product.increment({ stock: order.quantity }, { transaction });
-
       await product.reload({ transaction });
-
       console.log(`[${reqId}] 📊 Product stock AFTER restore:`, product.stock);
     } else {
-      console.log(
-        `[${reqId}] 🟢 Payment successful — NO stock restore (expected)`
-      );
+      console.log(`[${reqId}] 🟢 Payment success — stock unchanged`);
     }
 
     await transaction.commit();
     console.log(`[${reqId}] 💾 Transaction committed`);
 
-    return res.redirect(
-      `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${finalStatus}`
-    );
+    const redirectUrl = `${FRONTEND_BASE}/dashboard/payment-status?orderId=${orderId}&status=${finalStatus}`;
+    console.log(`[${reqId}] 🚀 FINAL REDIRECT URL:`, redirectUrl);
+
+    console.log(`==============================`);
+    console.log(`🟣 [${reqId}] PAYMENT RESPONSE END`);
+    console.log(`==============================\n`);
+
+    return res.redirect(redirectUrl);
   } catch (err) {
-    console.error(`🔴 [${reqId}] ERROR →`, err.message);
+    console.error(`🔴 [${reqId}] ERROR →`, err);
 
     if (transaction) {
       await transaction.rollback();
       console.log(`[${reqId}] ❌ Transaction rolled back`);
     }
 
-    return res.redirect(
-      `${FRONTEND_BASE}/dashboard/payment-status?status=ERROR`
-    );
+    const errorRedirect = `${FRONTEND_BASE}/dashboard/payment-status?status=ERROR`;
+    console.log(`[${reqId}] 🚨 ERROR REDIRECT URL:`, errorRedirect);
+
+    return res.redirect(errorRedirect);
   }
 };
 

@@ -101,15 +101,36 @@ const Order = sequelize.define(
       type: DataTypes.ENUM("CASH", "UPI", "CARD", "OTHER"),
       allowNull: true,
     },
+    reconciliationAttempts: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+
+    lastReconciliationAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
 
     gatewayOrderId: {
       type: DataTypes.STRING,
       allowNull: true,
+      unique: true,
     },
 
+    // gatewayOrderId: {
+    //   type: DataTypes.STRING,
+    //   allowNull: true,
+    // },
+
+    // gatewayTrackingId: {
+    //   type: DataTypes.STRING,
+    //   allowNull: true,
+    // },
     gatewayTrackingId: {
       type: DataTypes.STRING,
       allowNull: true,
+      unique: true,
     },
 
     paymentRef: {
@@ -236,6 +257,8 @@ const Order = sequelize.define(
       { fields: ["paymentStatus"] },
       { fields: ["status"] },
       { fields: ["createdAt"] },
+      { fields: ["gatewayOrderId"], unique: true },
+      { fields: ["reconciliationAttempts"] },
     ],
   }
 );

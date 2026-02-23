@@ -198,53 +198,119 @@ const getAllOrdersService = async () => {
 CANCEL ORDER SERVICE
 ========================================
 */
-
 const cancelOrderService = async ({ id }) => {
   try {
-    const order = await Order.findByPk(id);
-
-    if (!order) {
-      return errorResponse("Order not found", 404, "NOT_FOUND");
-    }
-
-    if (order.status === "CANCELLED") {
-      return errorResponse("Order already cancelled", 400, "ALREADY_CANCELLED");
-    }
-    // if (order.status === "PAID") {
-    //   return errorResponse("Cannot cancel paid Orders", 400, "PAID_ORDER");
-    // }
-
-    await sequelize.transaction(async (t) => {
-      const freshOrder = await Order.findByPk(id, {
+    return await sequelize.transaction(async (t) => {
+      const order = await Order.findByPk(id, {
         transaction: t,
         lock: t.LOCK.UPDATE,
       });
 
-      const product = await Product.findByPk(freshOrder.productId, {
-        transaction: t,
-        lock: t.LOCK.UPDATE,
-      });
+      if (!order) {
+        return errorResponse("Order not found", 404, "NOT_FOUND");
+      }
+
+      if (order.status === "CANCELLED") {
+        return errorResponse(
+          "Order already cancelled",
+          400,
+          "ALREADY_CANCELLED"
+        );
+      }
 
       /*
-      RESTORE STOCK CORRECTLY
+      🚫 Paid orders cannot be cancelled
       */
+      if (order.paymentStatus === "PAID") {
+        return errorResponse(
+          "Paid orders cannot be cancelled",
+          400,
+          "PAID_ORDER"
+        );
+      }
 
-      // product.stock += freshOrder.quantity;
-      product.stock = 1;
+      /*
+      🔥 Restore stock ONLY if still reserved
+      */
+      if (order.paymentStatus === "PENDING") {
+        const product = await Product.findByPk(order.productId, {
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+        });
 
-      await product.save({ transaction: t });
+        if (!product) {
+          throw new Error("Product not found");
+        }
 
-      freshOrder.status = "CANCELLED";
+        await product.increment({ stock: order.quantity }, { transaction: t });
 
-      await freshOrder.save({ transaction: t });
+        // Important: mark payment as cancelled so it never restores again
+        order.paymentStatus = "CANCELLED";
+      }
+
+      order.status = "CANCELLED";
+      await order.save({ transaction: t });
+
+      return successResponse(200, "Order cancelled successfully");
     });
-
-    return successResponse(200, "Order cancelled successfully");
   } catch (err) {
     return internalError(err);
   }
 };
+// const cancelOrderService = async ({ id }) => {
+//   try {
+//     return await sequelize.transaction(async (t) => {
+//       const order = await Order.findByPk(id, {
+//         transaction: t,
+//         lock: t.LOCK.UPDATE,
+//       });
 
+//       if (!order) {
+//         return errorResponse("Order not found", 404, "NOT_FOUND");
+//       }
+
+//       if (order.status === "CANCELLED") {
+//         return errorResponse(
+//           "Order already cancelled",
+//           400,
+//           "ALREADY_CANCELLED"
+//         );
+//       }
+
+//       /*
+//       🚫 Paid orders cannot be cancelled
+//       */
+//       if (order.paymentStatus === "PAID") {
+//         return errorResponse(
+//           "Paid orders cannot be cancelled",
+//           400,
+//           "PAID_ORDER"
+//         );
+//       }
+
+//       /*
+//       Restore stock (since payment not completed)
+//       */
+//       const product = await Product.findByPk(order.productId, {
+//         transaction: t,
+//         lock: t.LOCK.UPDATE,
+//       });
+
+//       if (!product) {
+//         throw new Error("Product not found");
+//       }
+
+//       await product.increment({ stock: order.quantity }, { transaction: t });
+
+//       order.status = "CANCELLED";
+//       await order.save({ transaction: t });
+
+//       return successResponse(200, "Order cancelled successfully");
+//     });
+//   } catch (err) {
+//     return internalError(err);
+//   }
+// };
 /*
 ========================================
 MARK ORDER PAID
@@ -312,44 +378,90 @@ const getOrderDetailService = async ({ id }) => {
 DELETE ORDER SERVICE
 ========================================
 */
-
 const deleteOrderService = async ({ id }) => {
   try {
-    await sequelize.transaction(async (t) => {
+    return await sequelize.transaction(async (t) => {
       const order = await Order.findByPk(id, {
         transaction: t,
         lock: t.LOCK.UPDATE,
       });
 
       if (!order) {
-        throw new Error("Order not found");
+        return errorResponse("Order not found", 404, "NOT_FOUND");
       }
 
       /*
-      RESTORE STOCK IF ACTIVE
+      🚫 Do NOT allow deleting paid orders
       */
+      if (order.paymentStatus === "PAID") {
+        return errorResponse(
+          "Paid orders cannot be deleted",
+          400,
+          "PAID_ORDER"
+        );
+      }
 
-      // if (order.status !== "CANCELLED") {
-      //   const product = await Product.findByPk(order.productId, {
-      //     transaction: t,
-      //     lock: t.LOCK.UPDATE,
-      //   });
+      /*
+      Restore stock only if order was not already cancelled
+      */
+      if (order.status !== "CANCELLED") {
+        const product = await Product.findByPk(order.productId, {
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+        });
 
-      //   if (product) {
-      //     // product.stock += order.quantity;
-      //     product.stock = 1;
-      //     await product.save({ transaction: t });
-      //   }
-      // }
+        if (!product) {
+          throw new Error("Product not found");
+        }
+
+        await product.increment({ stock: order.quantity }, { transaction: t });
+      }
 
       await order.destroy({ transaction: t });
-    });
 
-    return successResponse(200, "Order deleted successfully");
+      return successResponse(200, "Order deleted successfully");
+    });
   } catch (err) {
     return internalError(err);
   }
 };
+// const deleteOrderService = async ({ id }) => {
+//   try {
+//     await sequelize.transaction(async (t) => {
+//       const order = await Order.findByPk(id, {
+//         transaction: t,
+//         lock: t.LOCK.UPDATE,
+//       });
+
+//       if (!order) {
+//         throw new Error("Order not found");
+//       }
+
+//       /*
+//       RESTORE STOCK IF ACTIVE
+//       */
+
+//       // if (order.status !== "CANCELLED") {
+//       //   const product = await Product.findByPk(order.productId, {
+//       //     transaction: t,
+//       //     lock: t.LOCK.UPDATE,
+//       //   });
+
+//       //   if (product) {
+//       //     // product.stock += order.quantity;
+//       //     product.stock = 1;
+//       //     await product.save({ transaction: t });
+//       //   }
+//       // }
+
+//       await order.destroy({ transaction: t });
+//     });
+
+//     return successResponse(200, "Order deleted successfully");
+//   } catch (err) {
+//     return internalError(err);
+//   }
+// };
 
 /*
 ========================================

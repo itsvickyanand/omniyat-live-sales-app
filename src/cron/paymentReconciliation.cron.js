@@ -268,7 +268,7 @@ const runPaymentReconciliation = () => {
       const pendingOrders = await Order.findAll({
         where: {
           paymentStatus: "PENDING",
-          gatewayOrderId: { [Op.ne]: null },
+          //   gatewayOrderId: { [Op.ne]: null },
           reconciliationAttempts: { [Op.lt]: MAX_RETRIES },
           createdAt: { [Op.gte]: windowTime },
         },
@@ -293,6 +293,8 @@ const runPaymentReconciliation = () => {
             reqId
           );
 
+          console.log(gatewayData, "gatewaydata--------------#######");
+
           let finalStatus = "PENDING";
 
           if (gatewayData) {
@@ -315,6 +317,7 @@ const runPaymentReconciliation = () => {
             }
           } else {
             const ageMs = Date.now() - new Date(order.createdAt).getTime();
+            console.log(ageMs, "agems--------------#######");
 
             const FIFTEEN_MIN = 10 * 60 * 1000;
 
